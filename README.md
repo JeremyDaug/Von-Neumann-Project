@@ -68,7 +68,20 @@ Once all energy is collected you have a few options for end game content.
     1.  Use these resources to throw everything you can into cracking FTL, (and eventually succeeding).
 
 ## Features and Game Content
+### Incremental Growth
+The game focuses on starting small, with just the initial probe, and it's tools, you conquer and dismantle an entire star system for your ends, turning planets into a hammer for your forge, and conquering stars just to warm your feet.
+
+You gather resources to build factories so you can gather more resources and build a bigger factory. Players are given tools to expedite this process, like blueprints, demand backup, and some simple automation tools.
+
+### Logistics and Factory Buliding
+The goal is to build factories and supply lines. Factories can be designed, constructed, then consolidated into large factories and expanded again. Currently, these are very simple, they attach themselves to the stockpile of the body they are on, extract what they consume and return what they produce to the stockpile. The physical details of the body are abstracted away in, so internal logistics is just balancing inputs and output of factories within the body.
+
+Where Logistics come in however is in interbody transportation, taking resources from where they are plentiful and shipping them to where they are scarce. Energy can be beamed via lasers, goods can be shipped with fleets or launched via ballistically between locations. These shipping have to deal with the last part.
+
+### Physics Simulation on a Stellar Scale
+All of this motion occurs under the effects of physics. This means that as you shift mass around, you distort the gravity of the star system. With enough mass and energy under your control, you can manipulate and control the motions of the planets and eventually the stars themselves.
+
+The physics simulation includes both linear and angular physics as well as energy extraction and dispersion.
 
 ## Style
-
-A beat to the universe, a flow in the stars.
+The system works predominantly in steps, as such, we'll use these steps as a beat, audio and visual effects will be in time to it, giving a "*Groovy*" feeling as you work. The sun pulses in time and the planets seem to move with the beat, even your engines and mass drivers fire in time with the beat.
