@@ -66,34 +66,84 @@ Various secondary goods which are created and used to produce other things. Thes
     - Structural Metal + Technical Metal -> Electromagnets
   - Fusion Reactor Components (10000 kg for 1 reactor)
     - A complex and powerful source of energy which can be fed by Fusibles, which are among the most abundant resource in the Galaxy.
-    - 5 Electromagnets + 3 Wires + 1 Structural Components + 1 Basic Processor -> 10 Fusion Reactor Components
+    - Electromagnets + Wires + Structural Components + Basic Processor + Technical Components -> Fusion Reactor Components
   - Steam Turbine Parts
     - Parts for power generator which absorbs energy from hot steam to produce electricity.
-    - 1 Mechanical Components + 1 Structural Component + 1 Motor -> 3 Steam Turbine Parts
+  -  Mechanical Components + Structural Component + Motor -> Steam Turbine Parts
+  - Fission Reactor Parts
+    - Parts for a Fission Reactor.
+    - Basic Processors + Structural Components + Technical Components + Wires + Mechanical Components -> Fission Reactor Parts
+  - Photovoltaic Cell
+    - A component which absorbs photons and converts it into electricity for use.
+    - Wires + Structural Components + Technical Components -> Photovoltaic Cells
+  - Mirror Panelling
+    - Refined to a mirror finish, capable of reflecting most light.
+    - Structural Components -> Mirror Panelling
+  - Electrical Heater
+    - Powerful Resistive Heaters capable of melting metals.
+    - Technical components + Wires + Structural Components -> Electrical Heater
 - ## End Products and Buildings
-  - Building Space
+  - Building Prefab
     - Generic building, used for everything else.
-    - 10 Structural Components -> 1 Building Space
+    - 10 Structural Components -> 1 Building Prefab
   - Warehouse (Component)
-    - Turns a building space into an empty warehouse, can hold N * 100 * 1.1^N goods for each Warehouse component attached to the building.
-    - 1 Building Space -> 1 Warehouse
-  - Fusion Reactior
+    - Turns a Building Prefab into an empty warehouse, can hold N * 100 * 1.1^N goods for each Warehouse component attached to the building.
+    - 1 Building Prefab -> 1 Warehouse
+  - Fusion Reactior (Component, Generator)
     - High efficiency, with cheap and plentiful fuel. It's cost comes in it's inherestly large size, low scaling efficiency, and highly complex construction.
-    - 10 Building Space + X Fusion Reactor Components -> Fusion Reactor
-  - Fission Reactor
+    - 10 Building Prefab + X Fusion Reactor Components -> Fusion Reactor
+  - Fission Reactor (Component, Generator)
     - Moderate Efficiency, fuel is relatively expensive and rare, but highly efficient. It's construction is also fairly simple, a containing structure and small control mechanism.
-  - Steam Engine
+    - Steam Turbine Parts + Structural Components + Wires + Fission Reactor Parts + 1 Building  -> Fission Reactor
+  - Steam Turbine (Component, Generator)
     - Low Efficiency, but capable of burning Organic Matter and Biomatter for energy.
-  - Combustion Engine
-    - Moderate Efficiency, capable of burinng liquid fuels. It's greatest strength is it's small size per power output.
-  - Photoelectric Cell
+    - Steam Turbine + Structural Components + Wires + Building Prefab -> Steam Engine
+  - Light Collectors (Component, Solo, Surface Only)
     - Light which hits it is absorbed. A portion dissipates into heat, the rest is converted into Energy. It also imparts a change in momentum to the object.
-  - Mirror 
+    - Photovoltaic Cells + Structural Components + Basic Processor + Technical Component -> Light Collectors
+  - Mirror (Component, solo, Surface Only, Minimal Power)
     - Designed to recieve and reflect light. Gets double the momentum change of the Photoelectric Cell, and has a lower heat loss coefficient.
-  - Heat Sink (Component)
+    - Mirror Panelling + Structural Components + Motors -> Mirror
+  - Heat Sink (Component, Solo, Surface Only)
     - A part of a building or ship which increases heat dissapation for the body.
-  - Cooling Tower
+    - Wires + Structural Components => Heat Sink
+  - Cooling Tower (Component, Solo, Surface Only, Power Required)
     - A more proactive heat sink, it expends some energy (creating more thermal energy) to move an even larger quantity of thermal energy into it's heat sink, allowing it to dissapate energy more efficiently.
+    - Wires + Lubricant + Basic Motor + Strucutral Components -> Cooling Tower
+  - 3-D Printer (Component, Factory Component, Exclusive with Other Factory Campnoents, )
+    - The most flexible form of assembly, it uses lots of energy and raw resource to produce final products directly. Always more expensive in terms of time and energy, but highly flexible.
+    - Wires + Basic Motors + Mechanical Components + Technical Components + Basic Processor -> 3D printer
+  - Assembler (Compnoent, Factory Component)
+    - Capable of putting together various components and pieces, it is generally used for final assembly.
+    - Wires + Basic Motors + Mechanical Components + Basic Processor -> Assembler
+  - Factory (Component, Factory Component)
+    - Takes in material components and reforms them into new forms.
+    - Electric Heater + Structural Components + Wires + Basic Motors + Mechanical Components + Basic Processor + Building Prefab -> Factory
+  - Oil Refinery (Component, Factory Component)
+    - Specialized in oil and organic products. It is capable fo breaking them down and reforming complex organic molecules into more useful forms.
+    - Electric Heater + Wires + Structural Components + Building Prefab + Basic Processor + Mechanical Components + Technical Components -> Oil Refinery
+  - Electrolyser (Component, Factory Component)
+    - Refines water into Fusible material.
+    - Wires + Structural Components + Technical Components + Mechanical Components + Building Prefab -> Electrolyser
+  - Macerator
+  - 
+  - Mill
+  - Extractor
+  - Enricher
+  - Worker Hub
+  - Communication Hub
+  - Research Hub
+  - Mass Driver
+  - Star Port
+- ## Megastructures
+  - Space Elevator
+  - Lofstram Loop
+  - Orbital Ring
+  - Superdrivers
+  - 
+
+
+Components marked Solo cannot be combined with other buildings.
 
 
 ```mermaid
@@ -136,7 +186,7 @@ Plastic -- Conditioning --> Rubber([Rubber])
 
 Structure --> Construction{Construction}
 Plating --> Construction
-Construction --> Building([Building Space])
+Construction --> Building([Building Prefab])
 
 MechComp --> Fabrication{Fabrication}
 Structure --> Fabrication

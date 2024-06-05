@@ -2,8 +2,6 @@
 
 use std::{collections::HashMap, f64::consts::{PI, TAU}};
 
-use graphics::math;
-
 const G: f64 = 6.674e-11;
 
 /// # Orbital data

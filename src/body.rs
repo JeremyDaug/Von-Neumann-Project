@@ -1,6 +1,14 @@
 use crate::orbital::Orbital;
 
 /// # Body
+/// 
+/// A pre-existing body of mass. Typically natural, though artificial ones may 
+/// be created sby players by just piling up matter at some location.
+/// 
+/// A body has an orbital which defines its motions in the 2d space.
+/// 
+/// A Body can have a Base attached to it, A base is attached if the base ID
+/// is the same as the body's ID.
 pub struct Body {
     /// The unique id of the body. Shared by it's base and orbital 
     /// information.
