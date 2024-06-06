@@ -1,3 +1,5 @@
+use std::{collections::HashMap, f64::consts::PI};
+
 /// # Construct
 /// 
 /// A construct is anything the player can make. These may or may not be
@@ -35,13 +37,26 @@ impl Construct {
     /// Calculates the surface area of the construct.
     /// This surface area is only the outside
     pub fn surface_area(&self) -> f64 {
-        match self.form_factor {
+        match &self.form_factor {
             FormFactor::Spherical => {
-                
+                (self.total_structure / PI).sqrt()
             },
-            FormFactor::Rectangular(_) => todo!(),
-            FormFactor::Ring => todo!(),
-            FormFactor::Special(_) => todo!(),
+            FormFactor::Rectangular(ratio) => {
+                let x = (self.total_structure * ratio).sqrt();
+                2.0 * x + 2.0 * (ratio * x)
+            },
+            FormFactor::Ring => {
+                0.0
+            },
+            FormFactor::Special(spec) => {
+                match spec {
+                    SpecialForm::OrbitalRing(parent, radius) => {
+                        0.0
+                    },
+                    _ => { 0.0 }
+                }
+            },
+            _ => {0.0}
         }
     }
 }
@@ -49,7 +64,7 @@ impl Construct {
 /// # Form Factor 
 /// 
 /// The shape the construct takes.
-enum FormFactor {
+pub enum FormFactor {
     /// The construct is structured as a sphere, 
     /// 
     /// The surface area is proportional to it's total structure
@@ -77,7 +92,7 @@ enum FormFactor {
 /// # Special Form
 /// 
 /// A unique subset of forms, typically for megastructures.
-enum SpecialForm {
+pub enum SpecialForm {
     /// The form is an ring around a planetary body.
     /// 
     /// Contains the ID of the body it's attached to and the radius
