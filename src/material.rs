@@ -5,5 +5,7 @@ pub struct Material {
     pub id: usize,
     /// The name of the material,
     pub name: String,
-
+    /// The description of the material.
+    pub description: String,
+    // TODO, add token image here.
 }
