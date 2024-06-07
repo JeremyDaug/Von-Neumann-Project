@@ -29,6 +29,23 @@ pub struct Construct {
     pub structure_used: f64,
     /// How much of the structure's surface area is used.
     pub surface_used: f64,
+
+    // Control data
+    /// Whether the construct has a control node or not.
+    /// 
+    /// Without a personality node it must be controlled on site by 
+    /// another construct with a Personality Node or via a connection.
+    pub has_personality_node: bool,
+    /// Whether this construct is the center of authority or not.
+    /// 
+    /// If it is, then it recieves global orders no matter what.
+    /// A nexus must have a personality node.
+    pub is_nexus: bool,
+    /// Whether the Construct has a construct to the rest of the network.
+    /// 
+    /// If it does not have a connection it cannot connect to the global 
+    /// queue, and it will simply repeat it's last orders if possible.
+    pub has_connection: bool,
 }
 
 impl Construct {
