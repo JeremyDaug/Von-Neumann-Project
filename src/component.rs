@@ -1,3 +1,11 @@
+use std::collections::HashMap;
+
+/// # Component
+/// 
+/// A Component is the building block of functionality for constructs. 
+/// Everything they do is attached to a specific component they have.
+/// 
+/// TODO break this up into separate subclasses based around functionality and either turn this into a trait or make it a wrapper for the others.
 pub struct Component {
     // identity stuff
     /// The unique id for the component. No relation to other Ids.
@@ -43,4 +51,36 @@ pub struct Component {
     pub extracts: Vec<usize>,
     /// How many kg it can extract per time unit (1,000s)
     pub rate: f64,
+
+    // Worker Section
+    /// Whether the component grants a worker to whatever is installed.
+    pub gives_worker: bool,
+
+    // Storage Capability
+    /// Storage space is how much space the component can store.
+    /// Note: This is not needed 
+    pub storage_space: f64,
+
+    // Self-propelling Engine Section
+    /// Whether the engine uses a reaction mass or not.
+    /// If not, then it's likely either a Photon Rocket or using supertech 
+    /// reactionless engines.
+    pub reactive_engine: bool,
+    /// The mass expended per second kg/s for thrust of the engine.
+    /// Any mass expended for fuel is either destroyed or added to the
+    /// 'interplanetary medium', thus allowing it to be reharvested.
+    pub mass_flow: f64,
+    /// The velocity of the exhaust upon leaving the engine.
+    /// 
+    /// Mass_flow (kg/s) * Exhaust Velocity(m/s) gives the total force 
+    /// in N (kg m / s2).
+    pub exhaust_velocity: f64,
+
+    // light engine section
+    /// The maximum raw energy consumption of a light engine measured in
+    /// Watts.
+    pub max_consumption: f64,
+    /// Of all the energy consumed here, how much is converted into thrust.
+    /// All energy not made into thrust is converted into thermal energy.
+    pub thruster_efficiency: f64,
 }
