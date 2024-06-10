@@ -1,11 +1,11 @@
 mod orbital_tests {
     use std::collections::HashMap;
 
-    use von_neumann::orbital::{self, Orbital};
+    use von_neumann::orbital::Orbital;
 
     #[test]
     pub fn collapse_energy_gain_test() {
-        let mut t = Orbital{
+        let t = Orbital{
             id: 1,
             mass: 1_000_000_000_000_000.0,
             thermal_energy: 1.0,
@@ -19,7 +19,10 @@ mod orbital_tests {
             thermal_balance: 0.0,
             orbital_parent: None,
             primary_influences: vec![],
-            mass_breakdown: HashMap::new()
+            mass_breakdown: HashMap::new(),
+            is_fixed: false,
+            sphere_of_influence: 0.0,
+            has_collision: true,
         };
 
         // collapse by half radius

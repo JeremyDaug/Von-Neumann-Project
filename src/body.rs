@@ -1,5 +1,3 @@
-use crate::orbital::Orbital;
-
 /// # Body
 /// 
 /// A pre-existing body of mass. Typically natural, though artificial ones may 
@@ -17,8 +15,6 @@ pub struct Body {
     pub name: String,
     /// What kind of body it is. Star, Jovian, Terrestrial, Asteroid.
     pub kind: BodyType,
-    /// All of the orbital factors of the body.
-    pub orbital_data: Orbital,
     /// The number of surface slots on the body.
     /// Set by the initial self.orbital_data.rad. Only changes when 
     /// the radius changes dramatically (IE, gravitational collapse).
@@ -26,7 +22,6 @@ pub struct Body {
     /// Should the number of buildings on it be greater than the surface area, 
     /// then they are destroyed by 
     pub surface_area: f64,
-
 }
 
 pub enum BodyType {
@@ -49,4 +44,15 @@ pub enum BodyType {
     /// 
     /// So small that its gravity is often barely enough to keep it together.
     Asteroid
+}
+
+impl BodyType {
+    pub fn to_string(&self) -> String {
+        match self {
+            BodyType::Star => String::from("Star"),
+            BodyType::Jovian => String::from("Jovian"),
+            BodyType::Terrestrial => String::from("Terrestrial"),
+            BodyType::Asteroid => String::from("Asteroid"),
+        }
+    }
 }

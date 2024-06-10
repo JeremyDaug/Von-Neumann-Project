@@ -9,13 +9,16 @@ use std::{collections::HashMap, f64::consts::PI};
 /// 
 /// A body may only have 1 construct attached to it, but constructs can land on a planet.
 pub struct Construct {
-    /// The Id of the construct
+    /// The Id of the construct, if it matches a blueprint, then it should 
+    /// 
     pub id: usize,
-    /// The orbital location of the Construct.
-    /// If a construct lands on a body, gets attached to a body, or joins with
-    /// a fleet, the orbital ID is set to that of what it joins and mass is 
-    /// added to it. The effects of the construct may also alter parts of a fleet.
-    pub orbital: usize,
+    /// The id of the object this construct is attached to.
+    pub parent: Option<usize>,
+    /// The Constructs which are docked here.
+    pub children: Vec<usize>,
+    /// How many docking ports this construct has.
+    pub docking_space: usize,
+
     /// The components in the construct which effects the body.
     pub components: HashMap<usize, f64>,
     /// The form factor for the construct, defines the gain rate of surface 
@@ -46,9 +49,22 @@ pub struct Construct {
     /// If it does not have a connection it cannot connect to the global 
     /// queue, and it will simply repeat it's last orders if possible.
     pub has_connection: bool,
+
+    // queues and actions
+    // Action Queue
+    // Build Queue
+    // Refit Queue
 }
 
 impl Construct {
+    /// # Expand
+    /// 
+    /// Call this when adding space to a construct.
+    pub fn expand(&mut self, space: f64) -> Result<(), ()> {
+
+        Ok(())
+    }
+
     /// # Surface Area
     /// 
     /// Calculates the surface area of the construct.
@@ -67,13 +83,11 @@ impl Construct {
             },
             FormFactor::Special(spec) => {
                 match spec {
-                    SpecialForm::OrbitalRing(parent, radius) => {
+                    SpecialForm::OrbitalRing(_parent, _radius) => {
                         0.0
                     },
-                    _ => { 0.0 }
                 }
             },
-            _ => {0.0}
         }
     }
 }

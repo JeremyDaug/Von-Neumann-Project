@@ -24,6 +24,10 @@ pub struct Orbital {
     /// The id of the orbital object, should be shared with equivalent bodies like
     /// bodies, satellites, fleets, and bases.
     pub id: usize,
+
+    /// Whether the body is fixed or not. If fixed, then it will not change 
+    /// it's position due to outer forces. It will still be effected by 
+    pub is_fixed: bool,
     
     // Isolated Data
     /// The rest mass of the body (scalar component). measured in Kg.
@@ -80,10 +84,109 @@ pub struct Orbital {
     /// The detailed mass breakdown of a body, should sum up to self.mass.
     /// 
     /// The Key is the ID of the material in question.
-    pub mass_breakdown: HashMap<usize, f64>
+    pub mass_breakdown: HashMap<usize, f64>,
+
+    /// Sphere of Influence, a helper datum which helps the system know when an
+    /// object should change it's orbital_parent and/or primary influences.
+    pub sphere_of_influence: f64,
+
+    /// WHether the orbital body has collision or not.
+    /// 
+    /// Note that only if both objects don't have collision will they not 
+    /// collide. If one object has collision and the other doesn't, then 
+    /// a collision will still occur. This typically occurs for something
+    /// like a fleet coming into contact with a planet.
+    pub has_collision: bool,
 }
 
 impl Orbital {
+    // Builders and modifier chains.
+    /// # New
+    /// 
+    /// Makes a new default Orbital
+    /// 
+    /// Mass and thermal energy is set to 1.
+    /// is_fixed is true.
+    /// id is 0
+    /// all other values are either 0.0 or empty.
+    pub fn new() -> Orbital {
+        Orbital {
+            id: 0,
+            is_fixed: true,
+            mass: 1.0,
+            thermal_energy: 1.0,
+            rad: 0.0,
+            x: 0.0,
+            y: 0.0,
+            rot: 0.0,
+            vx: 0.0,
+            vy: 0.0,
+            vrot: 0.0,
+            thermal_balance: 0.0,
+            orbital_parent: None,
+            primary_influences: vec![],
+            mass_breakdown: HashMap::new(),
+            sphere_of_influence: 0.0,
+            has_collision: true,
+        }
+    }
+
+    /// # Include Matter
+    /// 
+    /// Adds the matter given, consumes original orbital.
+    pub fn include_matter(mut self, matter: HashMap<usize, f64>) -> Orbital {
+        for (id, quant) in matter.into_iter() {
+            self.mass_breakdown.entry(id)
+                .and_modify(|x| *x += quant)
+                .or_insert(quant);
+            self.mass += quant;
+            debug_assert!(*self.mass_breakdown.get(&id).unwrap() > 0.0, "Cannot have negative quantity of matter.")
+        }
+        self
+    }
+
+    pub fn angular_velocity(mut self, vrot: f64) -> Orbital {
+        self.vrot = vrot;
+        self
+    }
+
+    pub fn velocity(mut self, vx: f64, vy: f64) -> Orbital {
+        self.vx = vx;
+        self.vy = vy;
+        self
+    }
+
+    pub fn set_thermal_energy(mut self , thermal_energy: f64) -> Orbital {
+        debug_assert!(thermal_energy > 0.0, "Thermal energy must be positive value.");
+        self.thermal_energy = thermal_energy;
+        self
+    }
+
+    /// # Identifier
+    /// 
+    /// Consuming Id setter.
+    pub fn identifier(mut self, id: usize) -> Orbital {
+        self.id = id;
+        self
+    }
+
+    /// # Rotation
+    /// 
+    /// Consuming rotation setter.
+    pub fn rotation(mut self, rot: f64) -> Orbital {
+        self.rot = rot;
+        self
+    }
+
+    /// # Position
+    /// 
+    /// Consumes Orbital and sets positoin.
+    pub fn position(mut self, x: f64, y: f64) -> Orbital {
+        self.x = x;
+        self.y = y;
+        self
+    }
+
     // Derived Statistics
     /// # Rotational Eneregy
     /// 
@@ -194,18 +297,21 @@ impl Orbital {
             thermal_balance: self.thermal_balance + thermal_addition,
             orbital_parent: self.orbital_parent,
             primary_influences: self.primary_influences.clone(),
-            mass_breakdown: self.mass_breakdown.clone()
+            mass_breakdown: self.mass_breakdown.clone(),
+            is_fixed: false,
+            sphere_of_influence: self.sphere_of_influence,
+            has_collision: true,
         }
     }
 
     /// # Minimum Influence
     /// 
     /// Based on the mass of the object, it gets the radius at which
-    /// gravitational accelereation is at minimum 1 m / s^2.
+    /// gravitational accelereation is at minimum 0.01 m / s^2.
     /// 
     /// Any other body within this limit is considered to be influenced as it's strong enough to be noticeable.
     pub fn min_influence(&self) -> f64 {
-        let min_pull = 1.0;
+        let min_pull = 0.01;
         (min_pull / G / self.mass).sqrt()
     }
 }

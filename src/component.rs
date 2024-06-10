@@ -83,4 +83,30 @@ pub struct Component {
     /// Of all the energy consumed here, how much is converted into thrust.
     /// All energy not made into thrust is converted into thermal energy.
     pub thruster_efficiency: f64,
+
+    // light sail effects
+    /// The size of the sail in m2.
+    /// This is effectively how much of the solar wind and/or 
+    pub sail_size: f64,
+    /// How efficient the sail is at reflecting light.
+    /// 
+    /// A value from 0.0 to 1.0.
+    /// 
+    /// The higher the value, the more efficient the sail will redirect the 
+    /// energy instead of absorbing it. Any lost energy becomes thermal energy.
+    pub sail_efficiency: f64,
+    /// Whether the sail is a mirror or an absorber.
+    /// 
+    /// If mirror, it attempts to redirect all energy coming it's way.
+    /// Doing this doubles the momentum gained by the beam.
+    /// 
+    /// If not, then it attempts to absorb some of the energy as electricity.
+    /// All of the energy that makes it past the efficiency instead becomes
+    /// energy in the Construct. This is on top of the (reduced) momentum 
+    /// gained.
+    pub mirror: bool,
+
+    // docking
+    /// Whether the component is a docking port or not. 1 dock = 1 ship connection.
+    pub is_dock: bool,
 }
