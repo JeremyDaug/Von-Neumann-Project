@@ -34,5 +34,6 @@ fn main() {
         primary_influences: vec![],
         mass_breakdown: HashMap::new(),
         sphere_of_influence: 1.0,
+        has_collision: true
     };
 }

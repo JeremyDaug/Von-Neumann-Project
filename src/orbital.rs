@@ -314,4 +314,18 @@ impl Orbital {
         let min_pull = 0.01;
         (min_pull / G / self.mass).sqrt()
     }
+
+    /// # Distance Squared
+    pub fn dist_sqrd(&self, other: &Orbital) -> f64 {
+        let x = self.x - &other.x;
+        let y = self.y - &other.y;
+        x * x + y * y
+    }
+    
+    /// # Distance
+    /// 
+    /// Calculates the distance bectween this orbital's position and anothers.
+    pub fn distance(&self, other: &Orbital) -> f64 {
+        self.dist_sqrd(other).sqrt()
+    }
 }

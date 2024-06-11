@@ -43,7 +43,26 @@ impl Data {
         
         // iterate down the ids by mass.
         // the first has infinite SoI.
+        let first = self.orbitals.get_mut(sorted_ids.get(0).unwrap()).unwrap();
+        first.sphere_of_influence = f64::INFINITY;
         // all the rest are calculated base on their next most massive nearest neighbor.
         // CHeck that the body is captured by the larger body or not. If so, set it as parent also.
+        let mut touched_ids = vec![];
+        for id in sorted_ids.iter() {
+            // find closest of 
+            let current = self.orbitals.get(id).unwrap();
+            let mut closest = *id;
+            let mut closest_dis = f64::INFINITY;
+            for other in touched_ids.iter()
+            .map(|x| self.orbitals.get(x).unwrap()) {
+                // check if current is within SoI. If so, Then we're likely their child.
+                let distance = other.distance(current);
+                if distance < closest_dis { // if closest, update
+                    closest = other.id;
+                    closest_dis = distance;
+                }
+            }
+            // once closest is found
+        }
     }
 }
