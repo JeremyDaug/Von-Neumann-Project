@@ -20,6 +20,7 @@ const G: f64 = 6.674e-11;
 /// Velocity measured in Meters per second.
 /// Rotations use Radians.
 /// Rotation speeds Rad / Sec.
+#[derive(Clone, Debug)]
 pub struct Orbital {
     /// The id of the orbital object, should be shared with equivalent bodies like
     /// bodies, satellites, fleets, and bases.
@@ -76,6 +77,8 @@ pub struct Orbital {
     /// 
     /// Orbital Parent threshold should be 50% >= of net gravitational forces.
     pub orbital_parent: Option<usize>,
+    /// Orbital bodies which are in an orbit of this body.
+    pub orbital_children: Vec<usize>,
     /// The ids of the other bodies which have a noteworthy level of influence 
     /// on it's motion. (should be at least 1% of the influence of the orbital 
     /// parent, or at least 20% of total force if body has no parent.)
@@ -128,6 +131,7 @@ impl Orbital {
             mass_breakdown: HashMap::new(),
             sphere_of_influence: 0.0,
             has_collision: true,
+            orbital_children: vec![],
         }
     }
 
@@ -185,6 +189,15 @@ impl Orbital {
         self.x = x;
         self.y = y;
         self
+    }
+
+    /// # Add CHild
+    /// 
+    /// Adds child to this orbital body, creating it in a circular orbit with parameters given.
+    /// 
+    /// Will return Err if the child created is too big or too far away.
+    pub fn add_child(&mut self, mass: f64, distance: f64, start_angle: f64) -> Result<Orbital, ChildCreateErr> {
+
     }
 
     // Derived Statistics
@@ -301,6 +314,7 @@ impl Orbital {
             is_fixed: false,
             sphere_of_influence: self.sphere_of_influence,
             has_collision: true,
+            orbital_children: vec![],
         }
     }
 
@@ -325,7 +339,44 @@ impl Orbital {
     /// # Distance
     /// 
     /// Calculates the distance bectween this orbital's position and anothers.
-    pub fn distance(&self, other: &Orbital) -> f64 {
+    pub fn distance_to(&self, other: &Orbital) -> f64 {
         self.dist_sqrd(other).sqrt()
+    }
+
+    /// # Relative Velocity
+    /// 
+    /// Get's the current body's velocity relative to another body.
+    /// 
+    /// Return is vx and vy respectively.
+    pub fn relative_velocity(&self, other: &Orbital) -> (f64, f64) {
+        (
+            self.vx - other.vx,
+            self.vy - other.vy
+        )
+    }
+
+    /// # Speed
+    /// 
+    /// Given vX and vY, get the body's current speed overall.
+    /// 
+    /// IE the magnitude of vx and vy.
+    pub fn speed(vx: f64, vy: f64) -> f64 {
+        (vx * vx + vy * vy).sqrt()
+    }
+    
+    /// # Calculate Sphere of Influence
+    /// 
+    /// Calculates the Sphere of influence of this body relative to another body.
+    pub fn calculate_sphere_of_influence(&self, other: &Orbital) -> f64 {
+        let distance = other.distance_to(&self);
+        distance - (distance / ((self.mass / other.mass).sqrt() + 1.0))
+    }
+
+    /// # Escape Velocity
+    /// 
+    /// Calculates the speed needed to escape this body's pull, given a startng
+    /// radius.
+    pub fn escape_velocity(&self, radius: f64) -> f64 {
+        (2.0 * G * self.mass / radius).sqrt()
     }
 }

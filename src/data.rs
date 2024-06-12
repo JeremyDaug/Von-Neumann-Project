@@ -45,24 +45,32 @@ impl Data {
         // the first has infinite SoI.
         let first = self.orbitals.get_mut(sorted_ids.get(0).unwrap()).unwrap();
         first.sphere_of_influence = f64::INFINITY;
+        let first: Option<()> = None;
         // all the rest are calculated base on their next most massive nearest neighbor.
         // CHeck that the body is captured by the larger body or not. If so, set it as parent also.
         let mut touched_ids = vec![];
         for id in sorted_ids.iter() {
-            // find closest of 
-            let current = self.orbitals.get(id).unwrap();
-            let mut closest = *id;
-            let mut closest_dis = f64::INFINITY;
+            // find closest body you are in the SoI of.
+            let current = (*self.orbitals.get(id).unwrap()).clone(); // current body
+            let mut closest = 0; // current closest we're in the SoI of
+            let mut closest_dis = f64::INFINITY; // the distance of the closest body we're in SoI
             for other in touched_ids.iter()
-            .map(|x| self.orbitals.get(x).unwrap()) {
+            .map(|x| self.orbitals.get(x).unwrap()) { // go through previous (larger) bodies.
                 // check if current is within SoI. If so, Then we're likely their child.
-                let distance = other.distance(current);
-                if distance < closest_dis { // if closest, update
-                    closest = other.id;
+                let distance = other.distance_to(&current);
+                if other.sphere_of_influence > distance && // if in SoI
+                distance < closest_dis { // And Closest
+                    closest = other.id; // update closest
                     closest_dis = distance;
                 }
             }
-            // once closest is found
+            // once closest is found, calculate SoI
+            let other = self.orbitals.get(&closest).unwrap().clone();
+            self.orbitals.get_mut(id).unwrap().sphere_of_influence = current.calculate_sphere_of_influence(&other);
+            // Next, mark the other body as parent and this body as child of the other.
+            self.orbitals.get_mut(id).unwrap().orbital_parent = Some(other.id);
+            self.orbitals.get_mut(&other.id).unwrap().orbital_children.push(current.id);
         }
+        // with all sorted IDs gone through, we should have a proper tree now and SoIs should be set. Update these as 
     }
 }

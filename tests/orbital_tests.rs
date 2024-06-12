@@ -23,6 +23,7 @@ mod orbital_tests {
             is_fixed: false,
             sphere_of_influence: 0.0,
             has_collision: true,
+            orbital_children: vec![],
         };
 
         // collapse by half radius
