@@ -22,6 +22,9 @@ pub struct Body {
     /// Should the number of buildings on it be greater than the surface area, 
     /// then they are destroyed by 
     pub surface_area: f64,
+
+    /// The matter which makes up the body, broken up by id and mass.
+    pub matter_breakdown: HashMap<usize, f64>,
 }
 
 pub enum BodyType {

@@ -19,7 +19,6 @@ mod orbital_tests {
             thermal_balance: 0.0,
             orbital_parent: None,
             primary_influences: vec![],
-            mass_breakdown: HashMap::new(),
             is_fixed: false,
             sphere_of_influence: 0.0,
             has_collision: true,

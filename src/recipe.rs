@@ -18,6 +18,11 @@ pub struct Recipe {
     pub inputs: HashMap<usize, f64>,
     /// What the recipe outputs in the processes.
     pub outputs: HashMap<usize, f64>,
+
+    /// The Base energy cost for the process.
+    pub energy_cost: f64,
+    /// The base time cost for the process.
+    pub time_cost: f64,
 }
 
 /// # Recipe Type
@@ -28,6 +33,13 @@ pub struct Recipe {
 pub enum RecipeType {
     /// Refining, typically for turning raw resources into another resource.
     Refining,
+    /// Oil Refining, used for processing organic material into other oil based products.
+    OilRefining,
+    /// Fabrication, taking goods and reforming it into new shapes for later use.
+    /// Predominantly used for simple components.
     Fabricating,
+    /// Assembly, takes constituent parts and puts them together to create a 
+    /// new item. Most often used for final products, but also used for more
+    /// complex components.
     Assembly,
 }

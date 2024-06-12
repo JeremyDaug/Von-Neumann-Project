@@ -1,6 +1,7 @@
 //! Orbital Body handles geometry, transformation, movement, and similar activities.
 
-use std::{collections::HashMap, f64::consts::{PI, TAU}};
+use core::fmt;
+use std::{collections::HashMap, f64::consts::{PI, TAU}, process::Child};
 
 const G: f64 = 6.674e-11;
 
@@ -84,11 +85,6 @@ pub struct Orbital {
     /// parent, or at least 20% of total force if body has no parent.)
     pub primary_influences: Vec<usize>,
 
-    /// The detailed mass breakdown of a body, should sum up to self.mass.
-    /// 
-    /// The Key is the ID of the material in question.
-    pub mass_breakdown: HashMap<usize, f64>,
-
     /// Sphere of Influence, a helper datum which helps the system know when an
     /// object should change it's orbital_parent and/or primary influences.
     pub sphere_of_influence: f64,
@@ -128,7 +124,6 @@ impl Orbital {
             thermal_balance: 0.0,
             orbital_parent: None,
             primary_influences: vec![],
-            mass_breakdown: HashMap::new(),
             sphere_of_influence: 0.0,
             has_collision: true,
             orbital_children: vec![],
@@ -138,23 +133,24 @@ impl Orbital {
     /// # Include Matter
     /// 
     /// Adds the matter given, consumes original orbital.
-    pub fn include_matter(mut self, matter: HashMap<usize, f64>) -> Orbital {
+    pub fn with_matter(mut self, matter: HashMap<usize, f64>) -> Orbital {
         for (id, quant) in matter.into_iter() {
-            self.mass_breakdown.entry(id)
-                .and_modify(|x| *x += quant)
-                .or_insert(quant);
             self.mass += quant;
-            debug_assert!(*self.mass_breakdown.get(&id).unwrap() > 0.0, "Cannot have negative quantity of matter.")
         }
         self
     }
 
-    pub fn angular_velocity(mut self, vrot: f64) -> Orbital {
+    pub fn with_mass(mut self, mass: f64) -> Orbital {
+        self.mass = mass;
+        self
+    }
+
+    pub fn with_angular_velocity(mut self, vrot: f64) -> Orbital {
         self.vrot = vrot;
         self
     }
 
-    pub fn velocity(mut self, vx: f64, vy: f64) -> Orbital {
+    pub fn with_velocity(mut self, vx: f64, vy: f64) -> Orbital {
         self.vx = vx;
         self.vy = vy;
         self
@@ -190,14 +186,74 @@ impl Orbital {
         self.y = y;
         self
     }
+    
+    /// # With Parent
+    /// 
+    /// Consumes orbital and sets parent.
+    /// 
+    /// Cannot set parent to None.
+    fn with_parent(mut self, id: usize) -> Orbital {
+        self.orbital_parent = Some(id);
+        self
+    }
 
-    /// # Add CHild
+    /// # Add Child
     /// 
     /// Adds child to this orbital body, creating it in a circular orbit with parameters given.
+    /// start_angle is in radians and defines it's rotational location relative to the X axis.
     /// 
-    /// Will return Err if the child created is too big or too far away.
-    pub fn add_child(&mut self, mass: f64, distance: f64, start_angle: f64) -> Result<Orbital, ChildCreateErr> {
+    /// Will return Err if the child created is too big, outside of Sphere of Influence,
+    /// or so close that they are touching.
+    /// 
+    /// Child bodies are built assuming that 1 m^2 = 5000 kg.
+    /// 
+    /// TODO improve vector math being done by floating it off to better data storage.
+    pub fn add_child(&mut self, id: usize, mass: f64, distance: f64, start_angle: f64, reverse_orbit: bool) -> Result<Orbital, ChildCreateErr> {
+        if distance > self.sphere_of_influence {
+            return Err(ChildCreateErr::OutOfSoI);
+        } else if mass > self.mass {
+            // TODO modify this to be a bit lower so that binary systems are harder to create.
+            return Err(ChildCreateErr::TooMassive);
+        }
+        // calculate radius bassed off the standard 5000 kg / m^2
+        let area = mass / 5000.0;
+        let child_rad = (area / PI).sqrt();
+        if (child_rad + self.rad) <= distance {
+            return Err(ChildCreateErr::TooClose);
+        }
 
+        // create the rotated position based off of distance and start_angle
+        let posx = distance * f64::cos(start_angle);
+        let posy = distance * f64::sin(start_angle);
+        let (finx, finy) = (posx + self.x, posy + self.y);
+        // calculate the needed velocity to give a (near) circular orbit.
+        // TODO this assumes the child is of negligible mass relative to the parent. Consider changing to be more flexible.
+        let v = (G * self.mass / distance).sqrt();
+        // the direction is a right angle from posx, posy, assume counterclockwise default.
+        let norm = (posx/distance, posy/distance);
+        let (vfinx, vfiny) = if reverse_orbit {
+            (
+                norm.1 * v,
+                -norm.0 * v
+            )
+        } else {
+            (
+                -norm.1 * v,
+                norm.0 * v
+            )
+        };
+
+
+        // with all errors passed, build the child.
+        let child = Orbital::new()
+        .identifier(id)
+        .with_mass(mass)
+        .position(finx, finy)
+        .with_velocity(vfinx, vfiny)
+        .with_parent(self.id);
+
+        self.orbital_children.push(id);
+        Ok(child)
     }
 
     // Derived Statistics
@@ -310,7 +366,6 @@ impl Orbital {
             thermal_balance: self.thermal_balance + thermal_addition,
             orbital_parent: self.orbital_parent,
             primary_influences: self.primary_influences.clone(),
-            mass_breakdown: self.mass_breakdown.clone(),
             is_fixed: false,
             sphere_of_influence: self.sphere_of_influence,
             has_collision: true,
@@ -378,5 +433,25 @@ impl Orbital {
     /// radius.
     pub fn escape_velocity(&self, radius: f64) -> f64 {
         (2.0 * G * self.mass / radius).sqrt()
+    }
+
+}
+
+#[derive(Debug)]
+pub enum ChildCreateErr {
+    OutOfSoI,
+    TooMassive,
+    TooClose,
+}
+
+impl Error for ChildCreateErr {}
+
+impl fmt::Display for ChildCreateErr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ChildCreateErr::OutOfSoI => write!(f, "Outside of body's Sphere of Influence."),
+            ChildCreateErr::TooMassive => write!(f, "Child Body is too massive, must be smaller than the parent."),
+            ChildCreateErr::TooClose => write!(f, "Child body is too close, they cannot start touching."),
+        }
     }
 }
