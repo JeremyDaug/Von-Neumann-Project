@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /// # Body
 /// 
 /// A pre-existing body of mass. Typically natural, though artificial ones may 

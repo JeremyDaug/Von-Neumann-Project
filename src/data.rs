@@ -2,14 +2,22 @@ use std::{arch::x86_64, collections::HashMap};
 
 use itertools::Itertools;
 
-use crate::{body::Body, construct::Construct, orbital::Orbital};
+use crate::{body::Body, component::Component, construct::Construct, orbital::Orbital, recipe::Recipe};
 
 
 pub struct Data {
+    /// Dynamic
     pub bodies: HashMap<usize, Body>,
+    /// Dynamic
     pub orbitals: HashMap<usize, Orbital>,
+    /// Dynamic
     pub fleets: HashMap<usize, Construct>,
+    /// Dynamic, player created.
     pub blueprints: HashMap<usize, Construct>,
+    /// Static, created on load or through modifications.
+    pub components: HashMap<usize, Component>,
+    /// Static, created on load or through modifications.
+    pub recipies: HashMap<usize, Recipe>,
 }
 
 impl Data {
@@ -19,6 +27,9 @@ impl Data {
             orbitals: HashMap::new(),
             fleets: HashMap::new(),
             blueprints: HashMap::new(),
+            components: HashMap::new(),
+            recipies: HashMap::new(),
+            
         }
     }
 

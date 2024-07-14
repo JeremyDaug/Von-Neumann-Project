@@ -1,7 +1,7 @@
 //! Orbital Body handles geometry, transformation, movement, and similar activities.
 
 use core::fmt;
-use std::{collections::HashMap, f64::consts::{PI, TAU}, process::Child};
+use std::{collections::HashMap, error::Error, f64::consts::{PI, TAU}, process::Child};
 
 const G: f64 = 6.674e-11;
 

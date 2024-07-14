@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap};
 
 /// # Recipe
 /// 
@@ -30,7 +30,10 @@ pub struct Recipe {
 /// The kinds of recipies that exist.
 /// 
 /// Defines what components can do which.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RecipeType {
+    /// The recipe type is a printing only recipe. It's too complicated for anything less.
+    Printing,
     /// Refining, typically for turning raw resources into another resource.
     Refining,
     /// Oil Refining, used for processing organic material into other oil based products.

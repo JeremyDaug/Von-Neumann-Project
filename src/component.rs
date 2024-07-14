@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::recipe::RecipeType;
+
 /// # Component
 /// 
 /// A Component is the building block of functionality for constructs. 
@@ -15,7 +17,7 @@ pub struct Component {
     // TODO add image token here.
 
     // Construction section
-    /// The goods which go into making this component.
+    /// The goods which go into making this component.get_data_
     pub parts: HashMap<usize, f64>,
     /// How much worker time is needed to install the component.
     /// To uninstall takes an equal amount of time.
@@ -33,24 +35,23 @@ pub struct Component {
     pub energy_minimum: f64,
     /// The energy cost of the component. Needed equaly across it's work.
     pub energy_cost: f64,
+    /// How much energy the component can store.
+    pub energy_storage: f64,
     /// When paying the energy cost, this 
     /// thermal_waste * energy_cost = thermal energy gained.
     pub thermal_waste: f64,
+    /// How much extra heat energy this component stores. Storage here counts as extra mass
+    pub thermal_capacitance: f64,
 
     // Factory and assembly part
     /// The recipe the factory/assembly can use.
-    pub recipe_types: Vec<usize>,
-    /// The goods which the component consumes, all of these need to be met
-    /// for it to work.
-    pub consumes: HashMap<usize, f64>,
-    /// The goods which the component produces each term.
-    pub produces: HashMap<usize, f64>,
+    pub recipe_types: Option<RecipeType>,
 
     // Mining Part
     /// What materials(s) it extracts
     pub extracts: Vec<usize>,
     /// How many kg it can extract per time unit (1,000s)
-    pub rate: f64,
+    pub extraction_rate: f64,
 
     // Worker Section
     /// Whether the component grants a worker to whatever is installed.
@@ -82,6 +83,7 @@ pub struct Component {
     pub max_consumption: f64,
     /// Of all the energy consumed here, how much is converted into thrust.
     /// All energy not made into thrust is converted into thermal energy.
+    /// 1.0 means perfectly efficient, no heat loss.
     pub thruster_efficiency: f64,
 
     // light sail effects
@@ -109,4 +111,10 @@ pub struct Component {
     // docking
     /// Whether the component is a docking port or not. 1 dock = 1 ship connection.
     pub is_dock: bool,
+
+    // additional sections to maybe add
+    // electromagnetic cannon
+    // electromagnetic catch
+    // Launch Systems
+    // space elevator
 }
