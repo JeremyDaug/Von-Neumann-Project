@@ -1,16 +1,46 @@
 [package]
 name = "von_neumann"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Jeremy Daugherty <Jeremy.Daug@gmail.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bevy = { version = "0.17.3", features = ["dynamic_linking"] }
+bevy_ui_widgets = "0.17.3"
 # piston = "1.0.0"
 # piston2d-graphics = "0.44.0"
 # piston2d-opengl_graphics = "0.85.0"
-iced = "0.12.0"
-iced_wgpu = "0.12.1"
-itertools = "0.13.0"
+# iced = "0.12.0"
+# iced_wgpu = "0.12.1"
+# itertools = "0.13.0"
 # piston_window = "0.132.0"
+
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
+
+# release mod optimizations
+# # Enable more optimization in the release profile at the cost of compile time.
+# [profile.release]
+# # Compile the entire crate as one unit.
+# # Slows compile times, marginal improvements.
+# codegen-units = 1
+# # Do a second optimization pass over the entire program, including dependencies.
+# # Slows compile times, marginal improvements.
+# lto = "thin"
+
+# # Optimize for size in the wasm-release profile to reduce load times and bandwidth usage on web.
+# [profile.wasm-release]
+# # Default to release profile values.
+# inherits = "release"
+# # Optimize with size in mind (also try "z", sometimes it is better).
+# # Slightly slows compile times, great improvements to file size and runtime performance.
+# opt-level = "s"
+# # Strip all debugging information from the binary to slightly reduce file size.
+# strip = "debuginfo"
