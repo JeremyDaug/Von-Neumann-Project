@@ -1,5 +1,7 @@
+use std::fmt::Formatter;
+
 use bevy::{
-    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, picking::{events::Press, hover::Hovered}, state::{
+    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
         app::AppExtStates, condition::in_state, state::{NextState, OnEnter}
     }, ui::{BackgroundColor, BorderColor, Interaction, InteractionDisabled, Pressed, widget::Text}
 };
@@ -94,7 +96,7 @@ fn menu_setup(mut menu_state: ResMut<NextState<Screen>>) {
 fn menu_action(
     interaction_query: Query<
         (&Interaction, &MenuButtonAction),
-        (Changed<Interaction>, With<Button>),
+        Changed<Interaction>
     >,
     mut app_exit_writer: MessageWriter<AppExit>,
     mut screen: ResMut<NextState<Screen>>,
@@ -103,17 +105,29 @@ fn menu_action(
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
             match menu_button_action {
-                MenuButtonAction::Play => {
+                MenuButtonAction::NewGame => {
+                    info!("New Game button Pressed!");
                     game_state.set(GameState::Game);
                     screen.set(Screen::Disabled);
                 },
-                MenuButtonAction::Settings => screen.set(Screen::Settings),
-                MenuButtonAction::BackToMainMenu => screen.set(Screen::Main),
+                MenuButtonAction::Load => {
+                    info!("Load Button Pressed!");
+                }
+                MenuButtonAction::Settings => {
+                    info!("Settings Button Pressed!");
+                    screen.set(Screen::Settings)
+                },
+                MenuButtonAction::BackToMainMenu => {
+                    info!("Back To Main Menu Pressed!");
+                    screen.set(Screen::Main);
+                },
                 MenuButtonAction::BackToGame => {
+                    info!("Return to Game Pressed!");
                     screen.set(Screen::Disabled);
                     //game_state.set();
                 },
                 MenuButtonAction::Quit => {
+                    info!("Quit Button Pressed!");
                     app_exit_writer.write(AppExit::Success);
                 },
             }

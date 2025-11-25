@@ -22,9 +22,10 @@ pub enum Screen {
 /// # Menu Button Action
 /// 
 /// The available navigation actions in our buttons.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub enum MenuButtonAction {
-    Play,
+    NewGame,
+    Load,
     Settings,
     BackToMainMenu,
     BackToGame,

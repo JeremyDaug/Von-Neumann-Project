@@ -29,7 +29,9 @@ struct SplashScreen;
 
 /// # Splash Plugin
 /// 
+/// Sets up the splash screen.
 /// 
+/// TODO: Should be expanded to show both Bevy's screen, and the company logo(which it's already doing).
 pub fn splash_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let icon = asset_server.load("splash_logo.png");
     // display the logo
@@ -59,7 +61,7 @@ pub fn splash_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(
         SplashTimer(
             Timer::from_seconds(
-                3.0, 
+                1.0, 
                 TimerMode::Once)
             )
     );
