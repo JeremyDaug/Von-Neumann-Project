@@ -13,16 +13,8 @@ use bevy::{
 };
 use bevy_ui_widgets::Activate;
 
-use crate::{game_state::GameState, screens::screen_state::MenuButtonAction};
+use crate::{game_state::GameState, screens::{menu_plugin::{MENU_COLOR, NORMAL_BUTTON}, screen_state::{MenuButtonAction, Screen}}};
 
-// Slightly translucent Grey.
-const MENU_COLOR: Color = Color::linear_rgba(0.5, 0.5, 0.5, 0.9);
-
-// text color
-
-// button color dark grey
-const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-// button border color
 
 #[derive(Component, Debug)]
 struct MainMenuButton;
@@ -32,24 +24,10 @@ struct MainMenuButton;
 /// The setup for the main menu screen.
 /// 
 /// Shows the UI for mthe main menu.
-pub fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // create common data
-    let button_node = Node {
-        width: px(200),
-        height: px(60),
-        border: UiRect::all(px(5)),
-        justify_content: JustifyContent::Center,
-        align_items: AlignItems::Center,
-        margin: UiRect::all(px(10)),
-        ..default()
-    };
-
-    let button_text_font = TextFont {
-        font_size: 33.0,
-        ..default()
-    };
+pub fn main_menu_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
     commands.spawn((
         DespawnOnExit(GameState::Game),
+        DespawnOnExit(Screen::Main),
         Node { // screen node.
             width: percent(100),
             height: percent(100),
@@ -88,98 +66,7 @@ pub fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 button("Quit", MenuButtonAction::Quit),
             ));
         });
-        // .with_children(|parent| {
-        //     // New Game Button
-        //     parent.spawn((
-        //         button_node.clone(),
-        //         MainMenuButton,
-        //         MenuButtonAction::Play,
-        //         Button,
-        //         Hovered::default(),
-        //         BorderColor::all(Color::BLACK),
-        //         BorderRadius::MAX,
-        //         BackgroundColor(NORMAL_BUTTON),
-        //         children![
-        //             Text::new("New Game"),
-        //             button_text_font.clone(),
-        //             TextColor(Color::srgb(0.3, 0.3, 0.9))
-        //         ],
-        //         ( 
-        //         observe(|_activate: On<Activate>| {
-        //             info!("New Game Clicked!");
-        //         }
-        //     ))));
-
     });
-    //             (// New Game Button
-    //                 button_node.clone(),
-    //                 MainMenuButton,
-    //                 MenuButtonAction::Play,
-    //                 Button,
-    //                 Hovered::default(),
-    //                 BorderColor::all(Color::BLACK),
-    //                 BorderRadius::MAX,
-    //                 BackgroundColor(NORMAL_BUTTON),
-    //                 children![(
-    //                     Text::new("New Game"),
-    //                     button_text_font.clone(),
-    //                     TextColor(Color::srgb(0.3, 0.3, 0.9)),
-    //                     //TextShadow::default()
-    //                 )]
-    //             ),
-    //             (// Load Game Button
-    //                 Node {
-    //                     width: px(200),
-    //                     height: px(60),
-    //                     border: UiRect::all(px(5)),
-    //                     justify_content: JustifyContent::Center,
-    //                     align_items: AlignItems::Center,
-    //                     margin: UiRect::all(px(10)),
-    //                     ..default()
-    //                 },
-    //                 Button,
-    //                 Hovered::default(),
-    //                 BorderColor::all(Color::BLACK),
-    //                 BorderRadius::MAX,
-    //                 BackgroundColor(NORMAL_BUTTON),
-    //                 children![(
-    //                     Text::new("Load Game"),
-    //                     TextFont {
-    //                         font_size: 33.0,
-    //                         ..default()
-    //                     },
-    //                     TextColor(Color::srgb(0.3, 0.3, 0.9)),
-    //                     //TextShadow::default()
-    //                 )]
-    //             ),
-    //             // (// Settings Button
-    //             //     Node {
-    //             //         width: px(200),
-    //             //         height: px(60),
-    //             //         border: UiRect::all(px(5)),
-    //             //         justify_content: JustifyContent::Center,
-    //             //         align_items: AlignItems::Center,
-    //             //         margin: UiRect::all(px(10)),
-    //             //         ..default()
-    //             //     },
-    //             //     Button,
-    //             //     Hovered::default(),
-    //             //     BorderColor::all(Color::BLACK),
-    //             //     BorderRadius::MAX,
-    //             //     BackgroundColor(NORMAL_BUTTON),
-    //             //     children![(
-    //             //         Text::new("Settings"),
-    //             //         TextFont {
-    //             //             font_size: 33.0,
-    //             //             ..default()
-    //             //         },
-    //             //         TextColor(Color::srgb(0.3, 0.3, 0.9)),
-    //             //         //TextShadow::default()
-    //             //     )]
-    //             // ),
-    //         )]
-    //     )],
-    // ));
 }
 
 fn button(name: &str, action: MenuButtonAction) -> impl Bundle {

@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
 
 use bevy::{
-    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
+    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{component::Component, entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
         app::AppExtStates, condition::in_state, state::{NextState, OnEnter}
     }, ui::{BackgroundColor, BorderColor, Interaction, InteractionDisabled, Pressed, widget::Text}
 };
@@ -14,13 +14,16 @@ use crate::{game_state::GameState, screens::{
     settings::settings_setup
 }};
 
-const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
-const NORMAL_BUTTON_BORDER: Color = Color::srgb(0.35, 0.35, 0.35);
-const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const HOVERED_BUTTON_BORDER: Color = Color::srgb(0.65, 0.65, 0.65);
+pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+pub const NORMAL_BUTTON_BORDER: Color = Color::srgb(0.35, 0.35, 0.35);
+pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+pub const HOVERED_BUTTON_BORDER: Color = Color::srgb(0.65, 0.65, 0.65);
 //const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
-const PRESSED_BUTTON_BORDER: Color = Color::srgb(0.35, 0.35, 0.85);
+pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+pub const PRESSED_BUTTON_BORDER: Color = Color::srgb(0.35, 0.35, 0.85);
+
+// Slightly translucent Grey.
+pub const MENU_COLOR: Color = Color::linear_rgba(0.5, 0.5, 0.5, 0.9);
 
 pub fn menu_plugin(app: &mut App) {
     app
