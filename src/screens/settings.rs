@@ -1,12 +1,43 @@
 use bevy::{
-    asset::AssetServer, picking::hover::Hovered, prelude::*
+    asset::AssetServer, 
+    picking::hover::Hovered, 
+    prelude::*, 
+    ui::interaction_states, 
+    window::{
+        PrimaryWindow, 
+        WindowMode
+    }
 };
-use bevy_ui_widgets::Checkbox;
+use bevy_ui_widgets::{Checkbox, checkbox_self_update};
 
-use crate::{game_state::GameState, screens::{menu_plugin::{MENU_COLOR, NORMAL_BUTTON}, screen_state::{MenuButtonAction, Screen}}};
+use crate::{
+    game_state::GameState, 
+    screens::{
+        menu_plugin::{
+            CHECKBOX_COLOR, 
+            CHECKBOX_FILL, 
+            CHECKBOX_OUTLINE, 
+            MENU_COLOR, 
+            NORMAL_BUTTON
+        }, 
+        screen_state::{
+            MenuButtonAction, 
+            Screen
+        }
+    }
+};
 
-const CHECKBOX_COLOR: Color = Color::srgb(0.45, 0.45, 0.45);
-const CHECKBOX_FILL: Color = Color::srgb(0.35, 0.75, 0.35);
+#[derive(Component, Default, Debug)]
+pub struct SettingCheckbox;
+
+#[derive(Component, Default, Debug)]
+pub struct FullscreenCheckbox;
+
+#[derive(Component, Default, Debug)]
+pub struct Checkmark;
+
+#[derive(Resource, Default)]
+pub struct FullscreenState(bool);
 
 /// # Settings Setup
 /// 
@@ -14,7 +45,7 @@ const CHECKBOX_FILL: Color = Color::srgb(0.35, 0.75, 0.35);
 /// 
 /// While lazy, duplicating this for the pause screen is entirely valid. Consolidate 
 /// them later.
-pub fn settings_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
+pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         DespawnOnExit(GameState::Game),
         DespawnOnExit(Screen::Settings),
@@ -40,56 +71,101 @@ pub fn settings_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
             BackgroundColor(MENU_COLOR.into())
         ))
         .with_children(|parent| {
+            // Section Title: Display
+            parent.spawn((
+                Node {
+                    width: px(200),
+                    height: px(60),
+                    border: UiRect::all(px(5)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    margin: UiRect::all(px(10)),
+                    ..default()
+                },
+                children![(
+                    Text::new("Display Settings: "),
+                    TextFont {
+                        font_size: 23.0,
+                        ..default()
+                    },
+                )]
+            ));
             // settings buttons
             // Windows vs full screen
             parent.spawn((
-                Node {
-                    display: Display::Flex,
+                Node{
                     flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::FlexStart,
                     align_items: AlignItems::Center,
-                    align_content: AlignContent::Center,
-                    column_gap: px(4),
+                    margin: UiRect::all(px(5)),
                     ..default()
                 },
-                Name::new("Fullscreen?"),
+                Checkbox,
                 Hovered::default(),
-                Checkbox
-            ))
-            .with_children(|parent| {
-                // Checkbox outer
-                parent.spawn(
-                (
+            )).with_children(|row| {
+                // checkbox square
+                row.spawn((
                     Node {
-                        display: Display::Flex,
-                        width: px(16),
-                        height: px(16),
-                        border: UiRect::all(px(2)),
+                        width: px(24),
+                        height: px(24),
+                        border: UiRect::all(px(3)),
+                        margin: UiRect::all(px(3)),
                         ..default()
                     },
-                    BorderColor::all(CHECKBOX_COLOR),
-                    BorderRadius::all(px(3)),
-                ))
-                .with_children(|parent| {
-                    // checkbox inner.
+                    BorderColor::all(CHECKBOX_OUTLINE),
+                    BackgroundColor(CHECKBOX_FILL),
+                    FullscreenCheckbox,
+                ));
+
+                // checkmark (hidden by default)
+                row.spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        width: px(24),
+                        height: px(24),
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    BackgroundColor(Color::NONE),
+                    Checkmark,
+                )).with_children(|parent| {
                     parent.spawn((
-                        Node {
-                            display: Display::Flex,
-                            width: px(8),
-                            height: px(8),
-                            position_type: PositionType::Absolute,
-                            left: px(2),
-                            top: px(2),
+                        Text::new("X"),
+                        TextFont {
+                            font_size: 28.0,
                             ..default()
                         },
-                        BackgroundColor(CHECKBOX_FILL),
                     ));
                 });
 
-                parent.spawn((
-                    Text::new("Fullscreen?"),
+                // Label
+                row.spawn((
+                    Text::new(":Fullscreen"),
+                    TextFont {
+                        font_size: 28.0,
+                        ..default()
+                    },
                 ));
             });
+            // Section Title: Sounds
+            parent.spawn((
+                Node {
+                    width: px(200),
+                    height: px(60),
+                    border: UiRect::all(px(5)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    margin: UiRect::all(px(10)),
+                    ..default()
+                },
+                children![(
+                    Text::new("Audio Settings: "),
+                    TextFont {
+                        font_size: 23.0,
+                        ..default()
+                    },
+                )]
+            ));
             // Master Sound
             // Music
             // Sound Effects
@@ -122,4 +198,91 @@ pub fn settings_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
         });
         
     });
+}
+
+pub fn checkbox_system(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor, &mut BorderColor),
+        With<FullscreenCheckbox>
+    >,
+    mut checkmark_query: Query<&mut Visibility, With<Checkmark>>,
+    mut fullscreen_state: ResMut<FullscreenState>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    let mut window = if let Ok(win) = windows.single_mut() {
+        win
+    } else {
+        info!("Could not find window!?");
+        return;
+    };
+    let mut checkmark_visibility = if let Ok(check) = checkmark_query.single_mut() {
+        check
+    } else {
+        info!("Could not find the Checkmark!?");
+        return;
+    };
+
+    info!("Checkbox_System: Queries {}", interaction_query.count());
+
+    for (interaction, mut bg_color, mut border_color) in &mut interaction_query {
+        info!("Interaction: {:?}", interaction);
+        match *interaction {
+            Interaction::Pressed => {
+                // toggle the state
+                fullscreen_state.0 = !fullscreen_state.0;
+
+                // apply to window
+                window.mode = if fullscreen_state.0 {
+                    WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+                } else {
+                    WindowMode::Windowed
+                };
+
+                // Update visual Feedback
+                if fullscreen_state.0 {
+                    *bg_color = BackgroundColor(Color::srgb(0.0, 0.8, 0.0));
+                    *border_color = Color::srgb(0.0, 1.0, 0.0).into();
+                    *checkmark_visibility = Visibility::Visible;
+                } else {
+                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 1.0));
+                    *border_color = Color::WHITE.into();
+                    *checkmark_visibility = Visibility::Hidden;
+                }
+            },
+            Interaction::Hovered => {
+                *border_color = Color::srgb(0.8, 0.8, 1.0).into();
+            },
+            Interaction::None => {
+                *border_color = if fullscreen_state.0 {
+                    Color::srgb(0.0, 1.0, 0.0).into()
+                } else {
+                    Color::WHITE.into()
+                };
+            },
+        }
+    }
+
+    // Keep UI in sync if user toggles with Alt+Enter
+    let current_is_fullscreen = matches!(
+        window.mode,
+        WindowMode::Fullscreen(..) | WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+    );
+    if current_is_fullscreen != fullscreen_state.0 {
+        fullscreen_state.0 = current_is_fullscreen;
+        // Update visuals
+        let (bg, border, visibility) = if fullscreen_state.0 {
+            (
+                Color::srgb(0.0, 0.8, 0.0),
+                Color::srgb(0.0, 1.0, 0.0),
+                Visibility::Visible,
+            )
+        } else {
+            (
+                Color::srgba(0.15, 0.15, 0.15, 1.0),
+                Color::WHITE,
+                Visibility::Hidden,
+            )
+        };
+        *checkmark_visibility = visibility;
+    }
 }

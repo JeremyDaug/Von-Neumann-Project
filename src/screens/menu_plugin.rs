@@ -1,9 +1,10 @@
 use std::fmt::Formatter;
 
 use bevy::{
-    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{component::Component, entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
+    prelude::*,
+    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{component::Component, entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Commands, Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
         app::AppExtStates, condition::in_state, state::{NextState, OnEnter}
-    }, ui::{BackgroundColor, BorderColor, Interaction, InteractionDisabled, Pressed, widget::Text}
+    }, ui::{BackgroundColor, BorderColor, Checked, Interaction, InteractionDisabled, Pressed, widget::Text}
 };
 use bevy_ui_widgets::Button;
 
@@ -11,7 +12,7 @@ use crate::{game_state::GameState, screens::{
     main_menu::main_menu_setup, 
     pause_menu::pause_menu_setup, 
     screen_state::{MenuButtonAction, Screen}, 
-    settings::settings_setup
+    settings::{FullscreenState, SettingCheckbox, checkbox_system, settings_setup}
 }};
 
 pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -21,6 +22,10 @@ pub const HOVERED_BUTTON_BORDER: Color = Color::srgb(0.65, 0.65, 0.65);
 //const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
 pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 pub const PRESSED_BUTTON_BORDER: Color = Color::srgb(0.35, 0.35, 0.85);
+// checkbox colors
+pub const CHECKBOX_COLOR: Color = Color::srgb(0.45, 0.45, 0.45);
+pub const CHECKBOX_FILL: Color = Color::srgb(0.35, 0.75, 0.35);
+pub const CHECKBOX_OUTLINE: Color = Color::srgb(0.45, 0.45, 0.45);
 
 // Slightly translucent Grey.
 pub const MENU_COLOR: Color = Color::linear_rgba(0.5, 0.5, 0.5, 0.9);
@@ -30,14 +35,19 @@ pub fn menu_plugin(app: &mut App) {
     // When loading this plugin, what state we start on.
     // default screen is main menu.
     .init_state::<Screen>()
+    .init_resource::<FullscreenState>()
     // What to call on entering GameState::Menu
     .add_systems(OnEnter(GameState::Menu), menu_setup)
     .add_systems(OnEnter(Screen::Main), main_menu_setup)
     .add_systems(OnEnter(Screen::Pause), pause_menu_setup)
     .add_systems(OnEnter(Screen::Settings), settings_setup)
     .add_systems(Update, 
-        (menu_action, update_buttons).run_if(in_state(GameState::Menu)));
+        (menu_button_action, update_buttons, 
+        ).run_if(in_state(GameState::Menu)))
+    .add_systems(Update, checkbox_system);
 }
+
+
 
 fn update_buttons(
     mut buttons: Query<
@@ -88,7 +98,7 @@ pub fn set_button_style(
 /// 
 /// Just sets the screen state to Screen::Main
 fn menu_setup(mut menu_state: ResMut<NextState<Screen>>) {
-    menu_state.set(Screen::Main);
+    menu_state.set(Screen::Settings);
 }
 
 /// # Menu Action
@@ -96,7 +106,7 @@ fn menu_setup(mut menu_state: ResMut<NextState<Screen>>) {
 /// Occurs when a button is selected.
 /// 
 /// Changes the current menu screen state.
-fn menu_action(
+fn menu_button_action(
     interaction_query: Query<
         (&Interaction, &MenuButtonAction),
         Changed<Interaction>
