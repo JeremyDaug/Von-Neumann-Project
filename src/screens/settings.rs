@@ -2,21 +2,13 @@ use bevy::{
     asset::AssetServer, 
     picking::hover::Hovered, 
     prelude::*, 
-    ui::interaction_states, 
-    window::{
-        PrimaryWindow, 
-        WindowMode
-    }
+    window::WindowMode
 };
-use bevy_ui_widgets::{Checkbox, checkbox_self_update};
 
 use crate::{
     game_state::GameState, 
     screens::{
         menu_plugin::{
-            CHECKBOX_COLOR, 
-            CHECKBOX_FILL, 
-            CHECKBOX_OUTLINE, 
             MENU_COLOR, 
             NORMAL_BUTTON
         }, 
@@ -26,18 +18,25 @@ use crate::{
         }
     }
 };
-
 #[derive(Component, Default, Debug)]
-pub struct SettingCheckbox;
+pub struct FullscreenToggle;
 
-#[derive(Component, Default, Debug)]
-pub struct FullscreenCheckbox;
-
-#[derive(Component, Default, Debug)]
-pub struct Checkmark;
-
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Debug)]
 pub struct FullscreenState(bool);
+
+#[derive(Component, Default, Debug)]
+pub struct SettingButton;
+
+#[derive(Component, Debug)]
+pub enum SettingButtonAction {
+    ToggleFullscreen,
+    IncrementMaster(f32),
+    DecrementMaster(f32),
+    IncrementSounds(f32),
+    DecrementSounds(f32),
+    IncrementMusic(f32),
+    DecrementMusic(f32),
+}
 
 /// # Settings Setup
 /// 
@@ -45,7 +44,16 @@ pub struct FullscreenState(bool);
 /// 
 /// While lazy, duplicating this for the pause screen is entirely valid. Consolidate 
 /// them later.
-pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn settings_setup(mut commands: Commands, _asset_server: Res<AssetServer>) {
+    let button_node = Node {
+        width: px(200),
+        height: px(60),
+        border: UiRect::all(px(5)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        margin: UiRect::all(px(10)),
+        ..default()
+    };
     commands.spawn((
         DespawnOnExit(GameState::Game),
         DespawnOnExit(Screen::Settings),
@@ -74,7 +82,7 @@ pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             // Section Title: Display
             parent.spawn((
                 Node {
-                    width: px(200),
+                    width: px(500),
                     height: px(60),
                     border: UiRect::all(px(5)),
                     justify_content: JustifyContent::Center,
@@ -82,75 +90,18 @@ pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     margin: UiRect::all(px(10)),
                     ..default()
                 },
-                children![(
-                    Text::new("Display Settings: "),
-                    TextFont {
-                        font_size: 23.0,
-                        ..default()
-                    },
-                )]
+                Text::new("Display Settings: "),
+                TextFont {
+                    font_size: 23.0,
+                    ..default()
+                },
             ));
             // settings buttons
             // Windows vs full screen
-            parent.spawn((
-                Node{
-                    flex_direction: FlexDirection::Row,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::all(px(5)),
-                    ..default()
-                },
-                Checkbox,
-                Hovered::default(),
-            )).with_children(|row| {
-                // checkbox square
-                row.spawn((
-                    Node {
-                        width: px(24),
-                        height: px(24),
-                        border: UiRect::all(px(3)),
-                        margin: UiRect::all(px(3)),
-                        ..default()
-                    },
-                    BorderColor::all(CHECKBOX_OUTLINE),
-                    BackgroundColor(CHECKBOX_FILL),
-                    FullscreenCheckbox,
-                ));
-
-                // checkmark (hidden by default)
-                row.spawn((
-                    Node {
-                        position_type: PositionType::Absolute,
-                        width: px(24),
-                        height: px(24),
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                    Checkmark,
-                )).with_children(|parent| {
-                    parent.spawn((
-                        Text::new("X"),
-                        TextFont {
-                            font_size: 28.0,
-                            ..default()
-                        },
-                    ));
-                });
-
-                // Label
-                row.spawn((
-                    Text::new(":Fullscreen"),
-                    TextFont {
-                        font_size: 28.0,
-                        ..default()
-                    },
-                ));
-            });
-            // Section Title: Sounds
+            // TODO: Use Button instead of Checkbox, cheat like a little bitch.
             parent.spawn((
                 Node {
-                    width: px(200),
+                    width: px(500),
                     height: px(60),
                     border: UiRect::all(px(5)),
                     justify_content: JustifyContent::Center,
@@ -158,28 +109,58 @@ pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     margin: UiRect::all(px(10)),
                     ..default()
                 },
+                BackgroundColor(MENU_COLOR.into()),
                 children![(
-                    Text::new("Audio Settings: "),
-                    TextFont {
-                        font_size: 23.0,
-                        ..default()
-                    },
+                            Node {
+                                width: px(500),
+                                height: px(60),
+                                border: UiRect::all(px(5)),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                margin: UiRect::all(px(10)),
+                                ..default()
+                            },
+                            SettingButton,
+                            SettingButtonAction::ToggleFullscreen,
+                            Button,
+                            Hovered::default(),
+                            BorderColor::all(Color::BLACK),
+                            BorderRadius::MAX,
+                            BackgroundColor(NORMAL_BUTTON),
+                            children![
+                                Text::new("Toggle Fullscreen"),
+                                TextFont {
+                                    font_size: 23.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.3, 0.3, 0.9))
+                            ],
                 )]
             ));
+            // Section Title: Sounds
+            parent.spawn((
+                Node {
+                    width: px(500),
+                    height: px(60),
+                    border: UiRect::all(px(5)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    margin: UiRect::all(px(10)),
+                    ..default()
+                },
+                Text::new("Audio Settings: "),
+                TextFont {
+                    font_size: 23.0,
+                    ..default()
+                },
+            ));
+            // TODO: Sound settings go here. Not going to bother because we don't have sounds to play anyway.
             // Master Sound
             // Music
             // Sound Effects
             // Back
             parent.spawn((
-                Node {
-                    width: px(200),
-                    height: px(60),
-                    border: UiRect::all(px(5)),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::all(px(10)),
-                    ..default()
-                },
+                button_node.clone(),
                 MenuButtonAction::BackToMainMenu,
                 Button,
                 Hovered::default(),
@@ -200,89 +181,61 @@ pub fn settings_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-pub fn checkbox_system(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &mut BorderColor),
-        With<FullscreenCheckbox>
+pub fn setting_buttons_action(
+    interaction_query: Query<
+        (&Interaction, &SettingButtonAction),
+        Changed<Interaction>
     >,
-    mut checkmark_query: Query<&mut Visibility, With<Checkmark>>,
-    mut fullscreen_state: ResMut<FullscreenState>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Query<&mut Window>,
 ) {
-    let mut window = if let Ok(win) = windows.single_mut() {
-        win
-    } else {
-        info!("Could not find window!?");
-        return;
-    };
-    let mut checkmark_visibility = if let Ok(check) = checkmark_query.single_mut() {
-        check
-    } else {
-        info!("Could not find the Checkmark!?");
-        return;
-    };
-
-    info!("Checkbox_System: Queries {}", interaction_query.count());
-
-    for (interaction, mut bg_color, mut border_color) in &mut interaction_query {
-        info!("Interaction: {:?}", interaction);
-        match *interaction {
-            Interaction::Pressed => {
-                // toggle the state
-                fullscreen_state.0 = !fullscreen_state.0;
-
-                // apply to window
-                window.mode = if fullscreen_state.0 {
-                    WindowMode::BorderlessFullscreen(MonitorSelection::Current)
-                } else {
-                    WindowMode::Windowed
-                };
-
-                // Update visual Feedback
-                if fullscreen_state.0 {
-                    *bg_color = BackgroundColor(Color::srgb(0.0, 0.8, 0.0));
-                    *border_color = Color::srgb(0.0, 1.0, 0.0).into();
-                    *checkmark_visibility = Visibility::Visible;
-                } else {
-                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 1.0));
-                    *border_color = Color::WHITE.into();
-                    *checkmark_visibility = Visibility::Hidden;
-                }
-            },
-            Interaction::Hovered => {
-                *border_color = Color::srgb(0.8, 0.8, 1.0).into();
-            },
-            Interaction::None => {
-                *border_color = if fullscreen_state.0 {
-                    Color::srgb(0.0, 1.0, 0.0).into()
-                } else {
-                    Color::WHITE.into()
-                };
-            },
+    let mut window = windows.single_mut().unwrap();
+    for (interaction, setting_action) in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            match setting_action {
+                SettingButtonAction::ToggleFullscreen => {
+                    if let WindowMode::Windowed = window.mode {
+                        window.mode = WindowMode::BorderlessFullscreen(MonitorSelection::Current);
+                    } else {
+                        window.mode = WindowMode::Windowed;
+                    }
+                },
+                SettingButtonAction::IncrementMaster(up) => todo!(),
+                SettingButtonAction::DecrementMaster(down) => todo!(),
+                SettingButtonAction::IncrementSounds(up) => todo!(),
+                SettingButtonAction::DecrementSounds(down) => todo!(),
+                SettingButtonAction::IncrementMusic(up) => todo!(),
+                SettingButtonAction::DecrementMusic(down) => todo!(),
+            }
         }
     }
+}
 
-    // Keep UI in sync if user toggles with Alt+Enter
-    let current_is_fullscreen = matches!(
-        window.mode,
-        WindowMode::Fullscreen(..) | WindowMode::BorderlessFullscreen(MonitorSelection::Current)
-    );
-    if current_is_fullscreen != fullscreen_state.0 {
-        fullscreen_state.0 = current_is_fullscreen;
-        // Update visuals
-        let (bg, border, visibility) = if fullscreen_state.0 {
-            (
-                Color::srgb(0.0, 0.8, 0.0),
-                Color::srgb(0.0, 1.0, 0.0),
-                Visibility::Visible,
-            )
-        } else {
-            (
-                Color::srgba(0.15, 0.15, 0.15, 1.0),
-                Color::WHITE,
-                Visibility::Hidden,
-            )
-        };
-        *checkmark_visibility = visibility;
-    }
+
+fn setting_button(name: &str, action: SettingButtonAction) -> impl Bundle {
+    (
+        Node {
+            width: px(200),
+            height: px(60),
+            border: UiRect::all(px(5)),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            margin: UiRect::all(px(10)),
+            ..default()
+        },
+        SettingButton,
+        action,
+        Button,
+        Hovered::default(),
+        BorderColor::all(Color::BLACK),
+        BorderRadius::MAX,
+        BackgroundColor(NORMAL_BUTTON),
+        children![
+            Text::new(name),
+            TextFont {
+                font_size: 33.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.3, 0.3, 0.9))
+        ],
+    )
 }

@@ -1,18 +1,16 @@
-use std::fmt::Formatter;
-
 use bevy::{
     prelude::*,
-    app::{App, AppExit, Update}, color::{Color, palettes::css::GRAY}, ecs::{component::Component, entity_disabling::Disabled, hierarchy::Children, message::MessageWriter, query::{Added, Changed, Has, Or, With}, schedule::IntoScheduleConfigs, system::{Commands, Query, ResMut}}, log::info, picking::{events::Press, hover::Hovered}, reflect::PartialReflect, state::{
+    app::{App, AppExit, Update}, color::Color, ecs::{message::MessageWriter, query::{Changed, Has, Or}, schedule::IntoScheduleConfigs, system::{Query, ResMut}}, log::info, picking::hover::Hovered, state::{
         app::AppExtStates, condition::in_state, state::{NextState, OnEnter}
-    }, ui::{BackgroundColor, BorderColor, Checked, Interaction, InteractionDisabled, Pressed, widget::Text}
+    }, 
+    ui::{BackgroundColor, BorderColor, Interaction, Pressed}
 };
-use bevy_ui_widgets::Button;
 
 use crate::{game_state::GameState, screens::{
     main_menu::main_menu_setup, 
     pause_menu::pause_menu_setup, 
     screen_state::{MenuButtonAction, Screen}, 
-    settings::{FullscreenState, SettingCheckbox, checkbox_system, settings_setup}
+    settings::{FullscreenState, setting_buttons_action, settings_setup}
 }};
 
 pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -30,12 +28,25 @@ pub const CHECKBOX_OUTLINE: Color = Color::srgb(0.45, 0.45, 0.45);
 // Slightly translucent Grey.
 pub const MENU_COLOR: Color = Color::linear_rgba(0.5, 0.5, 0.5, 0.9);
 
+#[derive(Resource, Debug, Default)]
+pub struct MasterVolume(f32);
+
+#[derive(Resource, Debug, Default)]
+pub struct SoundVolume(f32);
+
+#[derive(Resource, Debug, Default)]
+pub struct MusicVolume(f32);
+
 pub fn menu_plugin(app: &mut App) {
     app
     // When loading this plugin, what state we start on.
     // default screen is main menu.
     .init_state::<Screen>()
+    // TODO: Update this to load fullscreen state setting from a settings config file.
     .init_resource::<FullscreenState>()
+    .init_resource::<MasterVolume>()
+    .init_resource::<SoundVolume>()
+    .init_resource::<MusicVolume>()
     // What to call on entering GameState::Menu
     .add_systems(OnEnter(GameState::Menu), menu_setup)
     .add_systems(OnEnter(Screen::Main), main_menu_setup)
@@ -44,7 +55,8 @@ pub fn menu_plugin(app: &mut App) {
     .add_systems(Update, 
         (menu_button_action, update_buttons, 
         ).run_if(in_state(GameState::Menu)))
-    .add_systems(Update, checkbox_system);
+    .add_systems(Update, (setting_buttons_action,)
+        .run_if(in_state(Screen::Settings)));
 }
 
 

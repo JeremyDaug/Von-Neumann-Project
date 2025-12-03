@@ -1,6 +1,7 @@
 pub mod screens;
 pub mod game_state;
 pub mod splash;
+pub mod game;
 
 use bevy::{DefaultPlugins, app::{App, Startup, Update}, camera::Camera2d, ecs::{schedule::IntoScheduleConfigs, system::Commands}, state::{app::AppExtStates, condition::in_state, state::OnEnter}};
 use bevy_ui_widgets::UiWidgetsPlugins;
