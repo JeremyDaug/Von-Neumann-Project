@@ -59,8 +59,6 @@ pub fn menu_plugin(app: &mut App) {
         .run_if(in_state(Screen::Settings)));
 }
 
-
-
 fn update_buttons(
     mut buttons: Query<
         (
@@ -110,7 +108,7 @@ pub fn set_button_style(
 /// 
 /// Just sets the screen state to Screen::Main
 fn menu_setup(mut menu_state: ResMut<NextState<Screen>>) {
-    menu_state.set(Screen::Settings);
+    menu_state.set(Screen::Main);
 }
 
 /// # Menu Action

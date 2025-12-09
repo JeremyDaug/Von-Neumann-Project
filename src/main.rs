@@ -6,7 +6,7 @@ pub mod game;
 use bevy::{DefaultPlugins, app::{App, Startup, Update}, camera::Camera2d, ecs::{schedule::IntoScheduleConfigs, system::Commands}, state::{app::AppExtStates, condition::in_state, state::OnEnter}};
 use bevy_ui_widgets::UiWidgetsPlugins;
 
-use crate::{game_state::GameState, splash::{splash_countdown, splash_setup}};
+use crate::{game_state::GameState, screens::{game_screen::game_plugin, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
 
 fn main() {
     // Start up app
@@ -20,7 +20,7 @@ fn main() {
         .add_systems(Startup, setup)
         // These two may be removed into a separate splash screen plugin later.
         .add_systems(OnEnter(GameState::Splash), splash_setup)
-        .add_plugins((screens::menu_plugin::menu_plugin,))
+        .add_plugins((menu_plugin, pause_menu_plugin, game_plugin))
         .add_systems(Update, splash_countdown.run_if(in_state(GameState::Splash)))
         .run();
 }

@@ -7,6 +7,11 @@ use crate::game::vector::Vector;
 /// 6.67408e-11 m^3 kg^-1 s^-2
 pub const G: f64 = 6.67408e-11; 
 
+/// Seconds in a day.
+pub const DAY_TO_SEC: f64 = 86400.0;
+/// Astronomical Units (AU) to Meters (m)
+pub const AU_TO_M: f64 = 149_597_870_700.0;
+
 /// # Orbital
 /// 
 /// Orbital contains all of the motion data for bodies, fleets, platforms, and ships.
@@ -284,4 +289,60 @@ impl Orbital {
         // println!("Leaving Under Acceleration");
         change_sum
     }
+
+    /// # Update Position
+    /// 
+    /// Moves the orbital position forward based on it's current velocity.
+    pub fn update_position(&mut self, delta: &f64) {
+        // positino vector starts at the position, adds the velocity, multiplied by delta.
+        let pos = self.position_vec().add(&self.velocity_vec().mult(*delta));
+        self.tx = pos.x;
+        self.ty = pos.y;
+    }
+
+    /// # Update Velocity
+    /// 
+    /// Updates the velocity based on the gravitational pull of the body's siblings,
+    /// moving forward by our delta in time.
+    pub fn update_velocity(&mut self, delta: &f64, others: &HashMap<usize, Orbital>) {
+        let g = self.under_accel(delta, others);
+        let new_velocity = self.velocity_vec().add(&g.mult(*delta));
+        self.vx = new_velocity.x;
+        self.vy = new_velocity.y;
+    }
+
+    /// # Update Rotatino
+    /// 
+    /// Updates the rotation bivector by our delta and rotatino velocity.
+    /// 
+    /// Note, rotation is measured in right angle turns, so 360 degrees = 4 txy.
+    /// 
+    /// NOTE: If the modulo operation here is too imprecise, make an internal one for extra perecision.
+    pub fn update_rotation(&mut self, delta: &f64) {
+        let new_rot = self.txy + self.vxy * delta;
+        let new_rot = new_rot % 4.0; // cut off at 4
+        self.txy = new_rot;
+    }
+
+    /// # Take Step
+    /// 
+    /// Changes the orbital to take a step of the delta given.
+    /// 
+    /// Does not alter the orbital in place, instead, returning the alterations of the 
+    /// orbital.
+    /// 
+    /// Delta is measured in seconds. Does not break down further, this is the smallest
+    /// step of calculation currently.
+    pub fn take_step(&self, delta: &f64, others: &HashMap<usize, Orbital>) -> Orbital {
+        let mut ret = self.clone();
+        // Move forward by our step.
+        ret.update_position(delta);
+        // update velocity
+        ret.update_velocity(delta, others);
+        // rotate
+        ret.update_rotation(delta);
+        ret
+    }
+
+    // TODO: Include functions for collisions, don't forget to include rotational effects of the collision.
 }
