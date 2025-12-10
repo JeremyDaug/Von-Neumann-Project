@@ -1,5 +1,7 @@
 use std::{collections::HashMap, default};
 
+use bevy::math::primitives::Circle;
+
 use crate::game::vector::Vector;
 
 /// # Gravitational Constant
@@ -64,7 +66,11 @@ pub struct Orbital {
     pub vxy: f64,
 
     /// e_012, Pseudoscalar factor. Not quite sure what to do with it, but it's here if needed.
-    pub txy: f64
+    pub txy: f64,
+
+    /// The Circle Mesh for the Orbital.
+    /// Calculated as the log base 10 of the radius.
+    pub circle: Circle
 }
 
 impl Orbital {
@@ -74,12 +80,14 @@ impl Orbital {
     pub fn new(id: usize) -> Self {
         Self {
             id,
+            circle: Circle { radius: 1.0 },
             ..Default::default()
         }
     }
 
     pub fn with_radius(mut self, radius: f64) -> Self {
         self.r = radius;
+        self.circle = Circle { radius: radius.log10() as f32 };
         self
     }
 
