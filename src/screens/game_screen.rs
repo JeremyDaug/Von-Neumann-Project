@@ -1,8 +1,10 @@
-use std::f32::consts::PI;
+use std::{f32::consts::{PI, TAU}, time};
 
-use bevy::{app::{App, Update}, asset::Assets, camera::CameraProjection, ecs::{schedule::IntoScheduleConfigs, system::{Commands, Res, ResMut}}, input::{ButtonInput, keyboard::KeyCode, mouse::MouseWheel}, log::info, mesh::Mesh, platform::collections::HashMap, prelude::*, sprite_render::{ColorMaterial, Wireframe2dPlugin}, state::{condition::in_state, state::NextState}};
+use bevy::{app::{App, Update}, asset::Assets, camera::CameraProjection, ecs::{schedule::IntoScheduleConfigs, system::{Commands, Res, ResMut}}, input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, log::info, math::VectorSpace, mesh::Mesh, platform::collections::HashMap, prelude::*, sprite_render::{ColorMaterial, Wireframe2dPlugin}, state::{condition::in_state, state::NextState}};
 
-use crate::{game::{body::Body, orbital::Orbital}, game_state::{self, GameState}};
+use crate::{game::{body::Body, orbital::{DAY_TO_SEC, Orbital}}, game_state::{self, GameState}};
+
+const TIME_STEP: f64 = DAY_TO_SEC;
 
 #[derive(Default, Debug, Resource)]
 pub struct GameData {
@@ -19,8 +21,22 @@ pub struct GameData {
     pub orbitals: HashMap<usize, Orbital>,
 }
 
-#[derive(Debug, Component)]
-pub struct OrbitalId(usize);
+impl GameData {
+    /// # Tick
+    /// 
+    /// Tech function that steps through all orbitals
+    pub fn tick(&mut self) {
+        // duplicate our oribtals to update.
+        let mut next_orbitals = self.orbitals.clone();
+        //let delta = 
+    }
+}
+
+#[derive(Debug, Component, Default)]
+pub struct OrbitalId(pub usize);
+
+#[derive(Debug, Component, Default)]
+pub struct RelativeCameraPosition(pub f32);
 
 pub fn game_plugin(app: &mut App) {
     info!("Game Plugin Loaded.");
@@ -49,6 +65,8 @@ pub fn game_plugin(app: &mut App) {
 fn move_camera_2d(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    mut motion: MessageReader<MouseMotion>,
     mut mouse_wheel: MessageReader<MouseWheel>,
     mut cam: Query<(&mut Transform, &mut Projection), With<Camera2d>>,
 ) {
@@ -57,16 +75,38 @@ fn move_camera_2d(
             // pan with WASD
             let mut move_dir = Vec2::ZERO;
             let pan_speed = 400.0;
-            if keyboard.pressed(KeyCode::KeyA) { move_dir.x -= 1.0; }
-            if keyboard.pressed(KeyCode::KeyD) { move_dir.x += 1.0; }
-            if keyboard.pressed(KeyCode::KeyW) { move_dir.y += 1.0; }
-            if keyboard.pressed(KeyCode::KeyS) { move_dir.y -= 1.0; }
+            if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) { 
+                move_dir.x -= 1.0; 
+            }
+            if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) { 
+                move_dir.x += 1.0; 
+            }
+            if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) { 
+                move_dir.y += 1.0; 
+            }
+            if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) { 
+                move_dir.y -= 1.0; 
+            }
             tf.translation += (move_dir.normalize_or_zero() * pan_speed * proj.scale * time.delta_secs()).extend(0.0);
+
+            // Drag Pan via Middle Mouse Button
+            if mouse_button.pressed(MouseButton::Middle) {
+                for ev in motion.read() {
+                    tf.translation -= Vec3::new(ev.delta.x, -ev.delta.y, 0.0) * proj.scale;
+                }
+            }
 
             // zoom function
             for ev in mouse_wheel.read() {
                 let delta = if ev.y > 0.0 { 0.9 } else { 1.0 / 0.9 };
                 proj.scale = (proj.scale * delta).clamp(0.1, 10.0);
+            }
+
+            // camera reset
+            // R resets the camera to 0.0 and zoom to our default (currently 1.0)
+            if keyboard.just_pressed(KeyCode::KeyR) {
+                tf.translation = Vec3::ZERO;
+                proj.scale = 1.0;
             }
         } else {
             info!("Projection was not Orthographic?!");
@@ -102,24 +142,24 @@ fn load_game(
     commands.spawn((
         Mesh2d(testhandle2),
         MeshMaterial2d(materials.add(Color::srgba(1.0, 0.0, 0.0, 1.0))),
-        Transform::from_xyz(0.0, 100.0, 0.0),
+        Transform::from_xyz(0.0, 500.0, 0.0),
         OrbitalId(1),
     ));
 }
 
 fn animation_tick(
     mut _orb_data: ResMut<GameData>,
-    mut query: Query<(&mut Transform, &OrbitalId)>,
+    mut query: Query<(&mut Transform, &mut Mesh2d, &OrbitalId)>,
     time: Res<Time>,
 ) {
     // deal with game speed checking here.
     // if time since last tick is not enough, skip the tick.
     // With time having passed successfully,
-    for (mut transform, OrbitalId(id)) in query.iter_mut() {
+    for (mut transform, mut _mesh, OrbitalId(id)) in query.iter_mut() {
         // for now, this is a super simple calculation. only move the second object.
         if *id == 1 {
-            let x = f32::sin(time.elapsed_secs() * PI) * 100.0;
-            let y = f32::cos(time.elapsed_secs() * PI) * 100.0;
+            let x = f32::sin(time.elapsed_secs() * TAU / 20.0) * 500.0;
+            let y = f32::cos(time.elapsed_secs() * TAU / 20.0) * 500.0;
             transform.translation.x = x;
             transform.translation.y = y;
         }

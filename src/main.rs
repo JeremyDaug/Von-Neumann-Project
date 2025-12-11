@@ -6,7 +6,7 @@ pub mod game;
 use bevy::{DefaultPlugins, app::{App, Startup, Update}, camera::Camera2d, ecs::{schedule::IntoScheduleConfigs, system::Commands}, state::{app::AppExtStates, condition::in_state, state::OnEnter}};
 use bevy_ui_widgets::UiWidgetsPlugins;
 
-use crate::{game_state::GameState, screens::{game_screen::game_plugin, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
+use crate::{game_state::GameState, screens::{game_screen::{OrbitalId, RelativeCameraPosition, game_plugin}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
 
 fn main() {
     // Start up app
@@ -26,5 +26,8 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        OrbitalId::default(),
+        RelativeCameraPosition::default()));
 }
