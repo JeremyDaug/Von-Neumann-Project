@@ -147,6 +147,9 @@ fn load_game(
     ));
 }
 
+/// # Animation Tick
+/// 
+/// Calls and updates the position of orbitals and visuals, as well as 
 fn animation_tick(
     mut _orb_data: ResMut<GameData>,
     mut query: Query<(&mut Transform, &mut Mesh2d, &OrbitalId)>,

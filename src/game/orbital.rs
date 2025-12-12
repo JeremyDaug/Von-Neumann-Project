@@ -343,10 +343,10 @@ impl Orbital {
     /// step of calculation currently.
     pub fn take_step(&self, delta: &f64, others: &HashMap<usize, Orbital>) -> Orbital {
         let mut ret = self.clone();
-        // Move forward by our step.
-        ret.update_position(delta);
         // update velocity
         ret.update_velocity(delta, others);
+        // Move forward by our step.
+        ret.update_position(delta);
         // rotate
         ret.update_rotation(delta);
         ret
