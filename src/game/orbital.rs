@@ -1,6 +1,6 @@
 use std::{collections::HashMap, default};
 
-use bevy::math::primitives::Circle;
+use bevy::math::{Vec3, Vec4, primitives::{Circle, Sphere}};
 
 use crate::game::vector::Vector;
 
@@ -50,27 +50,22 @@ pub struct Orbital {
     /// Inverted mass, to consolidate gravity calculations going forward.
     pub inv_m: f64,
 
-    // Line Vector, x is vertical line, y is horizontal line, r is the 'line at infinity'.
-    /// e_01 X-Translation (m)
-    pub tx: f64,
-    /// e_20 Y Translation (m)
-    pub ty: f64,
-    /// e_12 Rotation (m/m)
-    pub xy: f64,
+    // position
+    /// The position of the body in 3d
+    pub t: Vec3,
 
-    /// e_1, X velocity vector. (m/s)
-    pub vx: f64,
-    /// e_2, Y velocity Vector. (m/s)
-    pub vy: f64,
-    /// e_0, Rotational Velocity (m / m / s)
-    pub vxy: f64,
+    // rotation
+    /// The Rotation values, a Scalar + 3 Bivectors, or a Quaternion for losers.
+    pub rot: Vec4,
 
-    /// e_012, Pseudoscalar factor. Not quite sure what to do with it, but it's here if needed.
-    pub txy: f64,
+    /// The current translational velocity of the body.
+    pub v: Vec3,
+    /// The current Rotational Velocity of the body.
+    pub w: Vec3,
 
     /// The Circle Mesh for the Orbital.
     /// Calculated as the log base 10 of the radius.
-    pub circle: Circle
+    pub sphere: Sphere
 }
 
 impl Orbital {
@@ -87,7 +82,8 @@ impl Orbital {
 
     pub fn with_radius(mut self, radius: f64) -> Self {
         self.r = radius;
-        self.circle = Circle { radius: radius.log10() as f32 };
+        self.sphere = Sphere::default();
+        self.sphere.radius = radius as f32;
         self
     }
 

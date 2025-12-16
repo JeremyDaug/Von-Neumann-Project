@@ -1,6 +1,7 @@
 pub mod body;
 pub mod orbital;
 pub mod vector;
+pub mod multivector;
 
 #[cfg(test)]
 mod game_tests {
