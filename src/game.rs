@@ -16,7 +16,7 @@ mod game_tests {
 
         start.siblings.push(1);
         start.siblings.push(2);
-        let start_pos_vec = start.position_vec();
+        let start_pos_vec = start.t;
 
         let o1 = Orbital::new(1)
             .with_coords(0.0, 10.0, 0.0)

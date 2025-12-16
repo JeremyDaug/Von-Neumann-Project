@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default};
+use std::{collections::HashMap, default, f64::consts::TAU};
 
 use bevy::math::{Vec3, Vec4, primitives::{Circle, Sphere}};
 
@@ -56,6 +56,7 @@ pub struct Orbital {
 
     // rotation
     /// The Rotation values, 3 Bivectors, or a Quaternion for losers.
+    /// equal to rot * I (pseudoscalar)
     pub rot: Vector,
     /// The scalar part of our rotation vector.
     pub rot_scal: f64,
@@ -110,14 +111,14 @@ impl Orbital {
         self
     }
 
-    pub fn with_rotation(mut self, scalar: f64, i: f64, j: f64, k: f64) -> Self {
+    pub fn with_rotation(mut self, scalar: f64, xy: f64, yz: f64, zx: f64) -> Self {
         self.rot_scal = scalar;
-        self.rot = Vector { x: i, y: j, z: k };
+        self.rot = Vector { x: yz, y: zx, z: xy };
         self
     }
 
-    pub fn with_rot_vel(mut self, w: f64) -> Self {
-        self.vxy = w;
+    pub fn with_rot_vel(mut self, xy: f64, yz: f64, zx: f64) -> Self {
+        self.w = Vector { x: yz, y: zx, z: xy };
         self
     }
 
@@ -135,8 +136,8 @@ impl Orbital {
     /// The angular momentum of the body at this moment.
     /// 
     /// kg m^2 s^-1
-    pub fn angular_momentum(&self) -> f64 {
-        self.angular_inertia() * self.vxy
+    pub fn angular_momentum(&self) -> Vector {
+        self.w.mult(self.angular_inertia())
     }
 
     /// # Linear Momentum
@@ -146,8 +147,9 @@ impl Orbital {
     /// kg m s^-1
     pub fn linear_momentum(&self) -> Vector {
         Vector {
-            x: self.vx * self.m,
-            y: self.vy * self.m
+            x: self.v.x * self.m,
+            y: self.v.y * self.m,
+            z: self.v.z * self.m
         }
     }
 
@@ -157,7 +159,7 @@ impl Orbital {
     /// 
     /// m * s^-1
     pub fn speed_sqrd(&self) -> f64 {
-        self.vx.powi(2) + self.vy.powi(2)
+        self.v.magnitude()
     }
 
     /// # Kinetic Energy
@@ -171,7 +173,7 @@ impl Orbital {
     /// 
     /// The rotational energy of the body at this moment.
     pub fn rotational_energy(&self) -> f64 {
-        0.5 * self.angular_inertia() * self.vxy
+        0.5 * self.angular_inertia() * self.w.magnitude()
     }
 
     /// # Gravitational Acceleration
@@ -183,46 +185,6 @@ impl Orbital {
         G * self.m / d.powi(2)
     }
 
-    /// # Position Vector
-    /// 
-    /// Gets the Position vector.
-    pub fn position_vec(&self) -> Vector {
-        Vector {
-            x: self.tx,
-            y: self.ty
-        }
-    }
-
-    /// # Velocity Vector
-    /// 
-    /// Get the velocity vector.
-    pub fn velocity_vec(&self) -> Vector {
-        Vector {
-            x: self.vx,
-            y: self.vy
-        }
-    }
-
-    /// # Relative Position
-    /// 
-    /// Gets the relative Position Vector of self -> other
-    pub fn relative_position(&self, other: &Orbital) -> Vector {
-        Vector {
-            x: self.tx - other.tx,
-            y: self.ty - other.ty
-        }
-    }
-
-    /// # Relative Velocity
-    /// 
-    /// Gets the relative Velocity vector of self -> other
-    pub fn relative_velocity(&self, other: &Orbital) -> Vector {
-        Vector {
-            x: self.vx - other.vx,
-            y: self.vy - other.vy
-        }
-    }
-
     /// # Gravity Vector
     /// 
     /// Calculates the gravitational pull of the other object on
@@ -230,7 +192,7 @@ impl Orbital {
     pub fn gravity_vector(&self, other: &Orbital) -> Vector {
         // println!("Gravity Vector");
         // get the self -> other vector
-        let r_vector = self.relative_position(other);
+        let r_vector = self.t.sub(&other.t);
         // get the norm of that vector.
         let norm = r_vector.normalize();
         // Get the acceleration of gravity at that point.
@@ -256,7 +218,7 @@ impl Orbital {
         // iterate over siblings
         for other in self.siblings.iter().map(|x| others.get(x)
         .expect("Could not find Body in orbitals!")) {
-            let other_pos = other.position_vec();
+            let other_pos = other.t;
             // println!("Other Position: {:?}", other_pos);
             let other_mass = other.m;
             mass += other_mass;
@@ -300,9 +262,8 @@ impl Orbital {
     /// Moves the orbital position forward based on it's current velocity.
     pub fn update_position(&mut self, delta: &f64) {
         // positino vector starts at the position, adds the velocity, multiplied by delta.
-        let pos = self.position_vec().add(&self.velocity_vec().mult(*delta));
-        self.tx = pos.x;
-        self.ty = pos.y;
+        let pos = self.t.add(&self.v.mult(*delta));
+        self.t = pos;
     }
 
     /// # Update Velocity
@@ -311,22 +272,18 @@ impl Orbital {
     /// moving forward by our delta in time.
     pub fn update_velocity(&mut self, delta: &f64, others: &HashMap<usize, Orbital>) {
         let g = self.under_accel(delta, others);
-        let new_velocity = self.velocity_vec().add(&g.mult(*delta));
-        self.vx = new_velocity.x;
-        self.vy = new_velocity.y;
+        let new_velocity = self.v.add(&g.mult(*delta));
+        self.v = new_velocity;
     }
 
     /// # Update Rotatino
     /// 
-    /// Updates the rotation bivector by our delta and rotatino velocity.
+    /// Updates the rotation bivector by our delta and rotational velocity.
     /// 
-    /// Note, rotation is measured in right angle turns, so 360 degrees = 4 txy.
-    /// 
-    /// NOTE: If the modulo operation here is too imprecise, make an internal one for extra perecision.
+    /// Rotation is measured in Radians (TAU is used becaues it's better than PI)
     pub fn update_rotation(&mut self, delta: &f64) {
-        let new_rot = self.txy + self.vxy * delta;
-        let new_rot = new_rot % 4.0; // cut off at 4
-        self.txy = new_rot;
+        let new_rot = self.rot.add(&self.w).angular_clamp();
+        self.rot = new_rot;
     }
 
     /// # Take Step

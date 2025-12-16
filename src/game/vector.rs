@@ -1,3 +1,5 @@
+use std::f64::consts::TAU;
+
 /// # Vector
 /// 
 /// Vector struct, 3 components of f64
@@ -43,7 +45,7 @@ impl Vector {
         self.x*self.x + self.y*self.y + self.z*self.z
     }
     
-    /// # Norm
+    /// # Normalize
     /// 
     /// Normalizes the vector to be of magnitude 1.
     pub fn normalize(&self) -> Vector {
@@ -65,7 +67,48 @@ impl Vector {
     /// # Dot Product
     /// 
     /// Gets the dot product of the vector.
-    pub fn dot(&self, other: &Vector) -> f64 {
+    pub fn dot(&self, other: Vector) -> f64 {
         self.x * other.x + self.y * other.y
+    }
+
+    /// # Outer Product
+    /// 
+    /// Used to get angular differences between two vectors.
+    /// 
+    /// Useful for things like angular momentum and velocity.
+    pub fn outer(&self, other: Vector) -> Vector {
+        // (ax + by + cz)^(dx + ey + fz) =
+        //   ae xy + af xz 
+        // + bd yx + bf yz 
+        // + cd zx + ce zy =
+        // xy (ae - cd) +
+        // yz (bf - ce) +
+        // zx (cd - af) = (times pseudoscalar)
+        // z (ae - cd) + x (bf-ce) + y (cd - af)
+        Vector {
+            x: self.y*other.z-self.z*other.y,
+            y: self.z*other.x-self.x*other.z,
+            z: self.x*other.y-self.y*other.x
+        }
+    }
+
+    /// # Geometric Product
+    /// 
+    /// Multiplies two vectors to produce the inner and outer product.
+    /// 
+    /// Useful if you need both.
+    pub fn product(&self, other: Vector) -> (f64, Vector) {
+        (self.dot(other), self.outer(other))
+    }
+    
+    /// # Angular Clamp
+    /// 
+    /// Clamp function that binds the values to between + and - TAU
+    pub(crate) fn angular_clamp(&self) -> Vector {
+        Vector { 
+            x: self.x % TAU, 
+            y: self.y % TAU, 
+            z: self.z % TAU 
+        }
     }
 }
