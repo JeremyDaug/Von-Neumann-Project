@@ -52,16 +52,18 @@ pub struct Orbital {
 
     // position
     /// The position of the body in 3d
-    pub t: Vec3,
+    pub t: Vector,
 
     // rotation
-    /// The Rotation values, a Scalar + 3 Bivectors, or a Quaternion for losers.
-    pub rot: Vec4,
+    /// The Rotation values, 3 Bivectors, or a Quaternion for losers.
+    pub rot: Vector,
+    /// The scalar part of our rotation vector.
+    pub rot_scal: f64,
 
     /// The current translational velocity of the body.
-    pub v: Vec3,
+    pub v: Vector,
     /// The current Rotational Velocity of the body.
-    pub w: Vec3,
+    pub w: Vector,
 
     /// The Circle Mesh for the Orbital.
     /// Calculated as the log base 10 of the radius.
@@ -75,7 +77,7 @@ impl Orbital {
     pub fn new(id: usize) -> Self {
         Self {
             id,
-            circle: Circle { radius: 1.0 },
+            sphere: Sphere { radius: 1.0 },
             ..Default::default()
         }
     }
@@ -98,20 +100,19 @@ impl Orbital {
         self
     }
 
-    pub fn with_coords(mut self, x: f64, y: f64) -> Self {
-        self.tx = x;
-        self.ty = y;
+    pub fn with_coords(mut self, x: f64, y: f64, z: f64) -> Self {
+        self.t = Vector { x, y, z };
         self
     }
 
-    pub fn with_velocity(mut self, x: f64, y: f64) -> Self {
-        self.vx = x;
-        self.vy = y;
+    pub fn with_velocity(mut self, x: f64, y: f64, z: f64) -> Self {
+        self.v = Vector { x, y, z };
         self
     }
 
-    pub fn with_rotation(mut self, rot: f64) -> Self {
-        self.xy = rot;
+    pub fn with_rotation(mut self, scalar: f64, i: f64, j: f64, k: f64) -> Self {
+        self.rot_scal = scalar;
+        self.rot = Vector { x: i, y: j, z: k };
         self
     }
 
@@ -231,7 +232,7 @@ impl Orbital {
         // get the self -> other vector
         let r_vector = self.relative_position(other);
         // get the norm of that vector.
-        let norm = r_vector.norm();
+        let norm = r_vector.normalize();
         // Get the acceleration of gravity at that point.
         let gravity = G * other.m / r_vector.m_sqrd();
         // multiply the norm by our gravitational force and return.

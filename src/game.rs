@@ -1,7 +1,6 @@
 pub mod body;
 pub mod orbital;
 pub mod vector;
-pub mod multivector;
 
 #[cfg(test)]
 mod game_tests {
@@ -12,7 +11,7 @@ mod game_tests {
     #[test]
     fn center_of_gravity_should() {
         let mut start = Orbital::new(0)
-            .with_coords(10.0, 0.0)
+            .with_coords(10.0, 0.0, 0.0)
             .with_mass(100.0);
 
         start.siblings.push(1);
@@ -20,11 +19,11 @@ mod game_tests {
         let start_pos_vec = start.position_vec();
 
         let o1 = Orbital::new(1)
-            .with_coords(0.0, 10.0)
+            .with_coords(0.0, 10.0, 0.0)
             .with_mass(100000000.0);
 
         let o2 = Orbital::new(2)
-            .with_coords(0.0, -10.0)
+            .with_coords(0.0, -10.0, 0.0)
             .with_mass(100000000.0);
 
         let mut others = HashMap::new();
@@ -36,13 +35,13 @@ mod game_tests {
         // negative X direction.
         // Normalize for comparison.
         let accel = others.get(&0).unwrap()
-            .under_accel(&1.0, &others).norm();
+            .under_accel(&1.0, &others).normalize();
         // println!("accel Vec: {:?}", accel);
 
         let com = others.get(&0).unwrap()
             .center_of_attraction(&others).0;
         // println!("Com: {:?}", com);
-        let rel_com = start_pos_vec.sub(&com).norm();
+        let rel_com = start_pos_vec.sub(&com).normalize();
         // println!("Rel Com: {:?}", rel_com);
 
         let dot = accel.dot(&rel_com);
