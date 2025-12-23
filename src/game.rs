@@ -44,7 +44,7 @@ mod game_tests {
         let rel_com = start_pos_vec.sub(&com).normalize();
         // println!("Rel Com: {:?}", rel_com);
 
-        let dot = accel.dot(&rel_com);
+        let dot = accel.dot(rel_com);
         println!("Acceleration: {:?}", accel);
         println!("Relative Center of Mass: {:?}", rel_com);
         println!("Dot Product: {:?}", dot);

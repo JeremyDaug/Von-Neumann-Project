@@ -3,10 +3,38 @@ pub mod game_state;
 pub mod splash;
 pub mod game;
 
-use bevy::{DefaultPlugins, app::{App, Startup, Update}, camera::Camera2d, ecs::{schedule::IntoScheduleConfigs, system::Commands}, state::{app::AppExtStates, condition::in_state, state::OnEnter}};
+use bevy::{
+    DefaultPlugins, 
+    app::{
+        App, 
+        Startup, 
+        Update
+    }, 
+    prelude::*,
+    asset::Assets, 
+    camera::{
+        Camera3d,
+    }, 
+    ecs::{
+        schedule::IntoScheduleConfigs, 
+        system::{
+            Commands, 
+            ResMut
+        }
+    }, 
+    light::PointLight, 
+    math::{
+        Vec3, 
+        vec3
+    }, 
+    mesh::{Mesh, Mesh3d}, 
+    pbr::StandardMaterial, 
+    state::{app::AppExtStates, condition::in_state, state::OnEnter}, 
+    transform::components::Transform
+};
 use bevy_ui_widgets::UiWidgetsPlugins;
 
-use crate::{game_state::GameState, screens::{game_screen::{OrbitalId, RelativeCameraPosition, game_plugin}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
+use crate::{game::{body::Body, orbital::Orbital}, game_state::GameState, screens::{game_screen::{GameData, OrbitalId, RelativeCameraPosition, game_plugin}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
 
 fn main() {
     // Start up app
@@ -25,9 +53,15 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut game_data: ResMut<GameData>,
+) {
+    // Camera setup.
     commands.spawn((
-        Camera2d,
-        OrbitalId::default(),
-        RelativeCameraPosition::default()));
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 50.0, 100.0).looking_at(Vec3::ZERO, Vec3::Y)
+    ));
 }

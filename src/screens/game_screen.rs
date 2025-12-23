@@ -1,6 +1,10 @@
 use std::{f32::consts::{PI, TAU}, time};
 
-use bevy::{app::{App, Update}, asset::Assets, camera::CameraProjection, ecs::{schedule::IntoScheduleConfigs, system::{Commands, Res, ResMut}}, input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, log::info, math::VectorSpace, mesh::Mesh, platform::collections::HashMap, prelude::*, sprite_render::{ColorMaterial, Wireframe2dPlugin}, state::{condition::in_state, state::NextState}};
+use bevy::{
+    app::{App, Update}, asset::Assets, ecs::{
+        schedule::IntoScheduleConfigs, 
+        system::{Commands, Res, ResMut}
+    }, input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, log::info, math::VectorSpace, mesh::Mesh, pbr::StandardMaterialFlags, platform::collections::HashMap, prelude::*, sprite_render::{ColorMaterial, Wireframe2dPlugin}, state::{condition::in_state, state::NextState}};
 
 use crate::{game::{body::Body, orbital::{DAY_TO_SEC, Orbital}}, game_state::{self, GameState}};
 
@@ -62,6 +66,7 @@ pub fn game_plugin(app: &mut App) {
 
 // TODO: Add a clear fame function which clears out entities upon returning to main menu, but not on pause.
 
+/// TODO: This needs to be reworked for the 3d Camera!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 fn move_camera_2d(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -114,10 +119,11 @@ fn move_camera_2d(
     }
 }
 
+/// Load game function, should only work the one time on entering GameState::Game
 fn load_game(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_data: ResMut<GameData>,
 ) {
     // if game has already been loaded, skip this function.
@@ -126,25 +132,78 @@ fn load_game(
     }
     // if not, load and mark the game as loaded.
     game_data.game_loaded = true;
+
+
+
+    // Light Source
+    commands.spawn((
+        PointLight {
+            intensity: 2000.0,
+            shadows_enabled: true,
+            ..Default::default()
+        },
+        Transform::from_xyz(10.0, 20.0, 10.0),
+    ));
+
+    // Body 1 (larger, blue)
+    //let mass = 10.0;
+    game_data.orbitals.insert(0, 
+        Orbital::new(0)
+            .with_coords(-20.0, 0.0, 0.0)
+            .with_mass(10.0)
+            .with_velocity(0.0, 0.0, 4.0));
+
+    commands.spawn((
+        Mesh3d(meshes.add(Sphere{
+            radius: 3.0,
+            ..Default::default()
+        }.mesh().uv(32, 18))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.2, 0.2, 0.8),
+            ..Default::default()
+        })),
+        Transform::from_xyz(-20.0, 0.0, 0.0),
+        OrbitalId(0)
+    ));
+
+    // Body 2 (smaller, red)
+    game_data.orbitals.insert(1, 
+        Orbital::new(1)
+            .with_coords(20.0, 0.0, 0.0)
+            .with_mass(5.0)
+            .with_velocity(0.0, 0.0, -8.0));
+
+    commands.spawn((
+        Mesh3d(meshes.add(Sphere {
+            radius: 2.0,
+            ..Default::default()
+        }.mesh().uv(32, 18))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::srgb(0.8, 0.2, 0.2),
+            ..Default::default()
+        })),
+        Transform::from_xyz(-20.0, 0.0, 0.0),
+        OrbitalId(1)
+    ));
     
-    let testhandle1 = meshes.add(Circle::new(50.0));
-    let testhandle2 = meshes.add(Circle::new(25.0));
+    // let testhandle1 = meshes.add(Circle::new(50.0));
+    // let testhandle2 = meshes.add(Circle::new(25.0));
 
-    let color = Color::srgba(1.0, 1.0, 1.0, 1.0);
+    // let color = Color::srgba(1.0, 1.0, 1.0, 1.0);
 
-    commands.spawn((
-        Mesh2d(testhandle1),
-        MeshMaterial2d(materials.add(color)),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        OrbitalId(0),
-    ));
+    // commands.spawn((
+    //     Mesh2d(testhandle1),
+    //     MeshMaterial2d(materials.add(color)),
+    //     Transform::from_xyz(0.0, 0.0, 0.0),
+    //     OrbitalId(0),
+    // ));
 
-    commands.spawn((
-        Mesh2d(testhandle2),
-        MeshMaterial2d(materials.add(Color::srgba(1.0, 0.0, 0.0, 1.0))),
-        Transform::from_xyz(0.0, 500.0, 0.0),
-        OrbitalId(1),
-    ));
+    // commands.spawn((
+    //     Mesh2d(testhandle2),
+    //     MeshMaterial2d(materials.add(Color::srgba(1.0, 0.0, 0.0, 1.0))),
+    //     Transform::from_xyz(0.0, 500.0, 0.0),
+    //     OrbitalId(1),
+    // ));
 }
 
 /// # Animation Tick
@@ -158,15 +217,15 @@ fn animation_tick(
     // deal with game speed checking here.
     // if time since last tick is not enough, skip the tick.
     // With time having passed successfully,
-    for (mut transform, mut _mesh, OrbitalId(id)) in query.iter_mut() {
-        // for now, this is a super simple calculation. only move the second object.
-        if *id == 1 {
-            let x = f32::sin(time.elapsed_secs() * TAU / 20.0) * 500.0;
-            let y = f32::cos(time.elapsed_secs() * TAU / 20.0) * 500.0;
-            transform.translation.x = x;
-            transform.translation.y = y;
-        }
-    }
+    // for (mut transform, mut _mesh, OrbitalId(id)) in query.iter_mut() {
+    //     // for now, this is a super simple calculation. only move the second object.
+    //     if *id == 1 {
+    //         let x = f32::sin(time.elapsed_secs() * TAU / 20.0) * 500.0;
+    //         let y = f32::cos(time.elapsed_secs() * TAU / 20.0) * 500.0;
+    //         transform.translation.x = x;
+    //         transform.translation.y = y;
+    //     }
+    // }
 }
 
 pub fn keypress_actions(
