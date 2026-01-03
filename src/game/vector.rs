@@ -1,5 +1,7 @@
 use std::f64::consts::TAU;
 
+use bevy::math::Quat;
+
 /// # Vector
 /// 
 /// Vector struct, 3 components of f64
@@ -109,6 +111,14 @@ impl Vector {
             x: self.x % TAU, 
             y: self.y % TAU, 
             z: self.z % TAU 
+        }
+    }
+    
+    pub(crate) fn to_vec3(&self) -> bevy::math::Vec3 {
+        bevy::math::Vec3 {
+            x: self.x as f32,
+            y: self.y as f32,
+            z: self.z as f32,
         }
     }
 }

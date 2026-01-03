@@ -14,8 +14,8 @@ mod game_tests {
             .with_coords(10.0, 0.0, 0.0)
             .with_mass(100.0);
 
-        start.siblings.push(1);
-        start.siblings.push(2);
+        start.__siblings.push(1);
+        start.__siblings.push(2);
         let start_pos_vec = start.t;
 
         let o1 = Orbital::new(1)
@@ -35,7 +35,7 @@ mod game_tests {
         // negative X direction.
         // Normalize for comparison.
         let accel = others.get(&0).unwrap()
-            .under_accel(&1.0, &others).normalize();
+            .under_accel(1.0, &others).normalize();
         // println!("accel Vec: {:?}", accel);
 
         let com = others.get(&0).unwrap()

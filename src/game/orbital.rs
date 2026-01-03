@@ -1,18 +1,26 @@
 use std::{collections::HashMap, default, f64::consts::TAU};
 
-use bevy::math::{Vec3, Vec4, primitives::{Circle, Sphere}};
+use bevy::{log::info, math::{Vec3, Vec4, primitives::{Circle, Sphere}}};
 
 use crate::game::vector::Vector;
 
 /// # Gravitational Constant
 /// 
 /// 6.67408e-11 m^3 kg^-1 s^-2
-pub const G: f64 = 6.67408e-11; 
+//pub const G: f64 = 6.67408e-11; 
+pub const G: f64 = 40.0; 
 
 /// Seconds in a day.
 pub const DAY_TO_SEC: f64 = 86400.0;
 /// Astronomical Units (AU) to Meters (m)
 pub const AU_TO_M: f64 = 149_597_870_700.0;
+
+/// Mass of the Sun.
+pub const SOLMASS: f64 = 1.989e30;
+pub const JOVEMASS: f64 = 1.899e27;
+pub const EARTHMASS: f64 = 5.972e24;
+/// Mass of the Luna/Earth's Moon.1
+pub const LUNAMASS: f64 = 7.342e22;
 
 /// # Orbital
 /// 
@@ -25,8 +33,6 @@ pub const AU_TO_M: f64 = 149_597_870_700.0;
 /// 
 /// Most of the math is focused on 2 body physics, N-body physics is possible, but likely to be
 /// highly simplified.
-/// 
-/// 
 #[derive(Debug, Clone, Default)]
 pub struct Orbital {
     /// The unique Id attached to the orbital. Shared with the body or construct who's
@@ -35,7 +41,7 @@ pub struct Orbital {
 
     /// Siblings, the other bodies which are large enough and close enough to have
     /// meaningful (0.1% influence or more) gravitational pull on the orbital.
-    pub siblings: Vec<usize>,
+    pub __siblings: Vec<usize>,
 
     /// The radius of the body in meters, should always match body's radius.
     pub r: f64,
@@ -192,7 +198,7 @@ impl Orbital {
     pub fn gravity_vector(&self, other: &Orbital) -> Vector {
         // println!("Gravity Vector");
         // get the self -> other vector
-        let r_vector = self.t.sub(&other.t);
+        let r_vector = other.t.sub(&self.t);
         // get the norm of that vector.
         let norm = r_vector.normalize();
         // Get the acceleration of gravity at that point.
@@ -211,12 +217,14 @@ impl Orbital {
     /// This only covers this body's siblings.
     /// 
     /// Returns the absolute position of the mass, and it's calculated mass.
+    /// 
+    /// NOTE: This is not really being used.
     pub fn center_of_attraction(&self, others: &HashMap<usize, Orbital>) -> (Vector, f64) {
         // println!("Center of Attraction");
         let mut center = Vector::default();
         let mut mass = 0.0;
         // iterate over siblings
-        for other in self.siblings.iter().map(|x| others.get(x)
+        for other in self.__siblings.iter().map(|x| others.get(x)
         .expect("Could not find Body in orbitals!")) {
             let other_pos = other.t;
             // println!("Other Position: {:?}", other_pos);
@@ -236,20 +244,21 @@ impl Orbital {
 
     /// # Under Acceleration
     /// 
-    /// Calculates the acceleration the body is under given
-    /// the siblings it has. Siblings and their strength are not calculated here, merely
-    /// collected.
-    pub fn under_accel(&self, delta: &f64, others: &HashMap<usize, Orbital>) -> Vector {
+    /// Calculates the acceleration the body is under given the other objects in the 
+    /// star system.
+    pub fn under_accel(&self, delta: f64, others: &HashMap<usize, Orbital>) -> Vector {
         // println!("Under Acceleration");
         let mut change_sum = Vector::default();
-        // Iterate over siblings
-        for other in self.siblings.iter()
-        .map(|x| others.get(x).expect("Orbital Id Not Found!")) {
-            // with other gotten, calculate their gravity vector, multiply by our step 
+        // Iterate over others
+        for (_id, other) in others.iter()
+        // skip ourselves.
+        .filter(|x| *x.0 != self.id) { 
+            // calculate their gravity vector, multiply by our step 
             // delta and add to our sum.
-            let g_vec = &self.gravity_vector(other).mult(*delta);
+            let g_vec = &self.gravity_vector(other).mult(delta);
+            //info!("{} Vector_partial: {:?}", self.id, g_vec);
             // println!("Gravity Vector: {:?}", g_vec);
-            change_sum = change_sum.add(g_vec);
+            change_sum = change_sum.add(g_vec); // add our new vector to the sum.
         }
         // return our sum.
         // println!("Gravity Sum: {:?}", change_sum);
@@ -257,23 +266,24 @@ impl Orbital {
         change_sum
     }
 
+    /// # Update Velocity
+    /// 
+    /// Updates the velocity based on the gravitational pull of the other objects 
+    /// given to it.
+    pub fn update_velocity(&mut self, delta: f64, others: &HashMap<usize, Orbital>) {
+        let g = self.under_accel(delta, others);
+        info!("{} Gravity Vector: {:?}", self.id, g);
+        let new_velocity = self.v.add(&g.mult(delta));
+        self.v = new_velocity;
+    }
+
     /// # Update Position
     /// 
     /// Moves the orbital position forward based on it's current velocity.
-    pub fn update_position(&mut self, delta: &f64) {
+    pub fn update_position(&mut self, delta: f64) {
         // positino vector starts at the position, adds the velocity, multiplied by delta.
-        let pos = self.t.add(&self.v.mult(*delta));
+        let pos = self.t.add(&self.v.mult(delta));
         self.t = pos;
-    }
-
-    /// # Update Velocity
-    /// 
-    /// Updates the velocity based on the gravitational pull of the body's siblings,
-    /// moving forward by our delta in time.
-    pub fn update_velocity(&mut self, delta: &f64, others: &HashMap<usize, Orbital>) {
-        let g = self.under_accel(delta, others);
-        let new_velocity = self.v.add(&g.mult(*delta));
-        self.v = new_velocity;
     }
 
     /// # Update Rotatino
@@ -281,7 +291,7 @@ impl Orbital {
     /// Updates the rotation bivector by our delta and rotational velocity.
     /// 
     /// Rotation is measured in Radians (TAU is used becaues it's better than PI)
-    pub fn update_rotation(&mut self, delta: &f64) {
+    pub fn update_rotation(&mut self, delta: f64) {
         let new_rot = self.rot.add(&self.w).angular_clamp();
         self.rot = new_rot;
     }
@@ -295,7 +305,7 @@ impl Orbital {
     /// 
     /// Delta is measured in seconds. Does not break down further, this is the smallest
     /// step of calculation currently.
-    pub fn take_step(&self, delta: &f64, others: &HashMap<usize, Orbital>) -> Orbital {
+    pub fn take_step(&self, delta: f64, others: &HashMap<usize, Orbital>) -> Orbital {
         let mut ret = self.clone();
         // update velocity first
         ret.update_velocity(delta, others);
@@ -303,8 +313,12 @@ impl Orbital {
         ret.update_position(delta);
         // rotate
         ret.update_rotation(delta);
+        // check that we're actually getting changes.
+        info!("{} Velocity Change: {:?} -> {:?}", self.id, self.v, ret.v);
+        //info!("{} Position Change: {:?} -> {:?}", self.id, self.t, ret.t);
         ret
     }
+
 
     // TODO: Include functions for collisions, don't forget to include rotational effects of the collision.
 }
