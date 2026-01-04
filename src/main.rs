@@ -23,19 +23,7 @@ use bevy::{
 };
 use bevy_ui_widgets::UiWidgetsPlugins;
 
-use crate::{game::{body::Body, orbital::Orbital}, game_state::GameState, screens::{game_screen::{GameData, OrbitalId, RelativeCameraPosition, game_plugin, spherical_to_cartesian}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
-
-#[derive(Resource, Default)]
-pub struct CameraControl {
-    orbiting: bool,
-    last_mouse_pos: Vec2,
-    /// Distance from the Center
-    radius: f32,
-    /// Horizontal Angle (Radians)
-    azimuth : f32,
-    /// Vertical Angel (Radians)
-    elevation: f32,
-}
+use crate::{game_state::GameState, screens::{game_screen::{CameraControl, game_plugin, spherical_to_cartesian}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
 
 fn main() {
     // Start up app

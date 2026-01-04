@@ -4,11 +4,9 @@ use bevy::{
     app::{App, Update}, asset::Assets, ecs::{
         schedule::IntoScheduleConfigs, 
         system::{Commands, Res, ResMut}
-    }, 
-    input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, 
-    log::info, math::VectorSpace, mesh::Mesh, pbr::StandardMaterialFlags, prelude::*, sprite_render::{ColorMaterial, Wireframe2dPlugin}, state::{condition::in_state, state::NextState}};
+    }, input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, log::info, math::VectorSpace, mesh::Mesh, prelude::*, sprite_render::Wireframe2dPlugin, state::{condition::in_state, state::NextState}};
 
-use crate::{CameraControl, game::{body::Body, orbital::{DAY_TO_SEC, LUNAMASS, Orbital}}, game_state::{self, GameState}};
+use crate::{game::{body::{Body, BodyType}, orbital::{DAY_TO_SEC, LUNAMASS, Orbital}}, game_state::GameState};
 
 const TIME_STEP: f64 = DAY_TO_SEC;
 
@@ -123,33 +121,60 @@ impl GameData {
 #[derive(Debug, Component, Default)]
 pub struct OrbitalId(pub usize);
 
-#[derive(Debug, Component, Default)]
-pub struct RelativeCameraPosition(pub f32);
+#[derive(Resource, Default)]
+pub struct CameraControl {
+    /// Whether the camera is orbiting right now or not.
+    pub orbiting: bool,
+    /// The previous position of the mouse on the screen.
+    pub last_mouse_pos: Vec2,
+    /// Distance from the Center
+    pub radius: f32,
+    /// Horizontal Angle (Radians)
+    pub azimuth : f32,
+    /// Vertical Angel (Radians)
+    pub elevation: f32,
+    /// Which orbital the camera is locked on.
+    pub lock: Option<usize>,
+}
+
+#[derive(Resource, Default)]
+pub struct LockedTarget {
+    /// The entity we are locked on to.
+    pub entity: Option<Entity>,
+}
+
+/// 
+#[derive(Component)]
+pub struct SidebarButton(Entity);
 
 pub fn game_plugin(app: &mut App) {
     info!("Game Plugin Loaded.");
     app
-    .add_plugins(Wireframe2dPlugin::default())
-    .insert_resource(ClearColor(Color::NONE))
-    .init_resource::<GameData>()
-    .insert_resource(AmbientLight {
-        // TODO: modify this to look right later.
-        color: Color::WHITE,
-        brightness: 1.0,
-        ..default()
-    })
-    .add_systems( OnEnter(GameState::Game), load_game)
-        .add_systems(Update, (
-            camera_orbit_system,
-            camera_keyboard_pan_system,
-            camera_zoom_system,
-        ).run_if(in_state(GameState::Game)))
-    .add_systems(Update, 
-        animation_tick.run_if(in_state(GameState::Game)))
-    //.add_systems(OnExit(GameState::Game), clear_game)
-    .add_systems(Update, 
-        (keypress_actions).run_if(in_state(GameState::Game))
-    );
+        .add_plugins(Wireframe2dPlugin::default())
+        .insert_resource(ClearColor(Color::NONE))
+        .init_resource::<GameData>()
+        .insert_resource(AmbientLight {
+            // TODO: modify this to look right later.
+            color: Color::WHITE,
+            brightness: 1.0,
+            ..default()
+        })
+        .init_resource::<LockedTarget>()
+        .add_systems( OnEnter(GameState::Game), load_game)
+            .add_systems(Update, (
+                //camera_orbit_system,
+                //camera_keyboard_pan_system,
+                //camera_zoom_system,
+                camera_control_system,
+                sidebar_button_system,
+                update_sidebar_highlight,
+            ).run_if(in_state(GameState::Game)))
+        .add_systems(Update, 
+            animation_tick.run_if(in_state(GameState::Game)))
+        //.add_systems(OnExit(GameState::Game), clear_game)
+        .add_systems(Update, 
+            (keypress_actions).run_if(in_state(GameState::Game))
+        );
     // Init Game Speed
     // playing UI register
     // Pause menu Register
@@ -262,12 +287,71 @@ pub fn camera_keyboard_pan_system(
     }
 }
 
+fn camera_control_system(
+    mut camera_query: Query<&mut Transform, With<Camera>>,
+    body_query: Query<(&Transform, &OrbitalId), Without<Camera>>,
+    locked_target: Res<LockedTarget>,
+    time: Res<Time>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut motion_events: MessageReader<MouseMotion>,
+    mut scroll_events: MessageReader<MouseWheel>,
+    mut camera_control: ResMut<CameraControl>,
+) {
+    let mut camera_transform = camera_query.single_mut().expect("Camera not found!");
+
+    if let Some(target_entity) = locked_target.entity {
+        if let Ok((target_transform, _)) = body_query.get(target_entity) {
+            // Smoothly follow the target with offset
+            let target_pos = target_transform.translation;
+            let desired_pos = target_pos + Vec3::new(0.0, 50.0, 120.0);
+            camera_transform.translation = camera_transform.translation.lerp(desired_pos, 8.0 * time.delta_secs());
+            camera_transform.look_at(target_pos, Vec3::Y);
+            return; // Locked mode overrides manual control
+        }
+    }
+
+    // Free Camera Mode
+    // Orbit with mouse Drag
+    if buttons.pressed(MouseButton::Left) {
+        let mut delta = Vec2::ZERO;
+        for ev in motion_events.read() {
+            delta += ev.delta;
+        }
+        if delta.length_squared() > 0.0 {
+            // TODO: Break sensitivity out from here to be configurable.
+            let sensitivity = 0.004;
+            camera_control.azimuth -= delta.x * sensitivity;
+            camera_control.elevation -= delta.y * sensitivity;
+            camera_control.elevation = camera_control.elevation.clamp(0.1, PI - 0.1);
+        }
+    }
+
+    // Zoom 
+    let mut scroll = 0.0;
+    for ev in scroll_events.read() {
+        scroll += ev.y;
+    }
+    if scroll != 0.0 {
+        // TODO: Break scroll_sensitivity out from here to be configurable.
+        let scroll_sensitivity = 20.0;
+        camera_control.radius -= scroll * scroll_sensitivity;
+        camera_control.radius = camera_control.radius.clamp(50.0, 800.0);
+    }
+
+    // update position
+    camera_transform.translation = spherical_to_cartesian(camera_control.radius, 
+        camera_control.azimuth, camera_control.elevation);
+    
+    camera_transform.look_at(Vec3::ZERO, Vec3::Y);
+}
+
 /// Load game function, should only work the one time on entering GameState::Game
 fn load_game(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_data: ResMut<GameData>,
+    mut camera_control: Res<CameraControl>,
 ) {
     // if game has already been loaded, skip this function.
     if game_data.game_loaded {
@@ -286,14 +370,17 @@ fn load_game(
     //     Transform::from_xyz(10.0, 20.0, 10.0),
     // ));
 
+    let mut body_entities = vec![];
+
     // Body 1 (larger, blue)
     //let mass = 10.0;
+    game_data.bodies.insert(0, Body { id: 0, name: "Smallers".into(), body_type: BodyType::Jovian, total_mass: 5000.0, resources: HashMap::new(), storage: HashMap::new(), radius: 1.0, tempurature: 1.0 });
     game_data.orbitals.insert(0, 
         Orbital::new(0)
             .with_coords(-20.0, 0.0, 0.0)
             .with_mass(10000.0)
             .with_velocity(0.0, 0.0, 4.0));
-    commands.spawn((
+    let star_entity = commands.spawn((
         Mesh3d(meshes.add(Sphere{
             radius: 3.0,
             ..Default::default()
@@ -318,14 +405,17 @@ fn load_game(
         }
     ));
 
+    body_entities.push((0, star_entity.id(), Color::srgb(1.0, 0.9, 0.6)));
+
     // Body 2 (smaller, red)
+    game_data.bodies.insert(1, Body { id: 1, name: "Smallers".into(), body_type: BodyType::Jovian, total_mass: 5000.0, resources: HashMap::new(), storage: HashMap::new(), radius: 1.0, tempurature: 1.0 });
     game_data.orbitals.insert(1, 
         Orbital::new(1)
             .with_coords(20.0, 0.0, 0.0)
             .with_mass(5000.0)
             .with_velocity(0.0, 0.0, -8.0));
 
-    commands.spawn((
+    let planet_entity = commands.spawn((
         Mesh3d(meshes.add(Sphere {
             radius: 2.0,
             ..Default::default()
@@ -339,25 +429,131 @@ fn load_game(
         Transform::from_xyz(-20.0, 0.0, 0.0),
         OrbitalId(1)
     ));
+
+    body_entities.push((1, planet_entity.id(), Color::srgb(1.0, 0.9, 0.6)));
     
-    // let testhandle1 = meshes.add(Circle::new(50.0));
-    // let testhandle2 = meshes.add(Circle::new(25.0));
+    // Navigation Sidebar UI
+    // TODO: Redo zoom buttons into more nice grid form somthing like Body Name | Go-To Button | Expand/Collapse (children and/or more info) | hide from outliner
+    // TODO: If we include the last button (Hide from outliner) we'll also need a 'unhide from outliner' button or context menu.
+    commands
+        .spawn((
+            Node{
+                width: Val::Px(280.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.9).into()),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(": Celestial Bodies :"),
+                TextFont {
+                    font_size: 28.0,
+                    ..default()
+                }
+            ));
 
-    // let color = Color::srgba(1.0, 1.0, 1.0, 1.0);
+            parent.spawn((
+                Node::DEFAULT,
+            )).with_children(|column| {
+                // Free Camera Button
+                column.spawn((
+                    Button,
+                    BackgroundColor(Color::srgb(0.3, 0.3, 0.4).into()),
+                )).with_children(|btn| {
+                    btn.spawn((
+                        Text::new("⟐ Free Camera"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        }
+                    ));
+                })
+                .insert(SidebarButton(Entity::PLACEHOLDER));
 
-    // commands.spawn((
-    //     Mesh2d(testhandle1),
-    //     MeshMaterial2d(materials.add(color)),
-    //     Transform::from_xyz(0.0, 0.0, 0.0),
-    //     OrbitalId(0),
-    // ));
+                // Body buttons
+                for (orbital_id, entity, color) in body_entities.iter() {
+                    column
+                        .spawn((
+                            Button,
+                            Node {
+                                width: Val::Percent(100.0),
+                                padding: UiRect::all(Val::Px(12.0)),
+                                margin: UiRect::vertical(Val::Px(4.0)),
+                                justify_content: JustifyContent::FlexStart,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.15, 0.15, 0.2).into()),
+                            SidebarButton(*entity),
+                        ));
 
-    // commands.spawn((
-    //     Mesh2d(testhandle2),
-    //     MeshMaterial2d(materials.add(Color::srgba(1.0, 0.0, 0.0, 1.0))),
-    //     Transform::from_xyz(0.0, 500.0, 0.0),
-    //     OrbitalId(1),
-    // ));
+                    column.spawn((
+                        Node {
+                            width: Val::Px(16.0),
+                            height: Val::Px(16.0),
+                            margin: UiRect::right(Val::Px(12.0)),
+                            ..default()
+                        },
+                        BackgroundColor(*color)
+                    ));
+                    let body_name = game_data.bodies.get(orbital_id).unwrap().name.clone();
+                    column.spawn((
+                        Text::new(body_name),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::WHITE)
+                    ));
+                }
+            });
+        });
+}
+
+/// A helper to generate outliner rows.
+fn outliner_row() -> impl Bundle {
+    todo!()
+}
+
+fn _load_sidebar_ui(mut _commands: Commands,
+    mut _meshes: ResMut<Assets<Mesh>>,
+    mut _materials: ResMut<Assets<StandardMaterial>>,
+    _camera_control: Res<CameraControl>,
+) {
+    todo!()
+}
+
+pub fn sidebar_button_system(
+    mut interaction_query: Query<(&Interaction, &SidebarButton), (Changed<Interaction>, With<Button>)>,
+    mut locked_target: ResMut<LockedTarget>,
+) {
+    for (interaction, button) in interaction_query.iter_mut() {
+        if *interaction == Interaction::Pressed {
+            if button.0 == Entity::PLACEHOLDER {
+                locked_target.entity = None; // Unlock
+            } else {
+                locked_target.entity = Some(button.0);
+            }
+        }
+    }
+}
+
+pub fn update_sidebar_highlight(
+    locked_target: Res<LockedTarget>,
+    mut button_query: Query<(&SidebarButton, &mut BackgroundColor), With<Button>>,
+) {
+
+    for (button, mut bg) in button_query.iter_mut() {
+        if locked_target.entity == Some(button.0) {
+            *bg = Color::srgb(0.4, 0.6, 0.8).into();
+        } else if button.0 == Entity::PLACEHOLDER && locked_target.entity.is_none() {
+            *bg = Color::srgb(0.4, 0.7, 0.4).into();
+        } else {
+            *bg = Color::srgb(0.15, 0.15, 0.2).into();
+        }
+    }
 }
 
 /// # Animation Tick
