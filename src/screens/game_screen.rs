@@ -1,7 +1,7 @@
 use std::{cmp::{self, Ordering}, collections::HashMap, f32::consts::{PI, TAU}, time};
 
 use bevy::{
-    app::{App, Update}, asset::Assets, ecs::{
+    app::{App, Update}, asset::Assets, core_pipeline::Skybox, ecs::{
         schedule::IntoScheduleConfigs, 
         system::{Commands, Res, ResMut}
     }, input::{ButtonInput, keyboard::KeyCode, mouse::{MouseMotion, MouseWheel}}, log::info, math::VectorSpace, mesh::Mesh, prelude::*, sprite_render::Wireframe2dPlugin, state::{condition::in_state, state::NextState}};
@@ -169,6 +169,7 @@ pub fn game_plugin(app: &mut App) {
                 sidebar_button_system,
                 update_sidebar_highlight,
             ).run_if(in_state(GameState::Game)))
+        .add_systems(OnEnter(GameState::Game), setup_skybox)
         .add_systems(Update, 
             animation_tick.run_if(in_state(GameState::Game)))
         //.add_systems(OnExit(GameState::Game), clear_game)
@@ -189,6 +190,20 @@ pub fn spherical_to_cartesian(radius: f32, azimuth: f32, elevation: f32) -> Vec3
     let y = radius * elevation.cos();
     let z = radius * elevation.sin() * azimuth.sin();
     Vec3::new(x, y, z)
+}
+
+pub fn setup_skybox(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    // simple option, using hdr
+    // TODO: Current Skybox is a 'free' skybox found online. Should make our own later.
+    commands.spawn(
+        Skybox {
+            image: asset_server.load("skybox.hdr"), 
+            ..Default::default()
+        }
+    );
 }
 
 pub fn camera_orbit_system(
@@ -513,9 +528,9 @@ fn load_game(
 }
 
 /// A helper to generate outliner rows.
-fn outliner_row() -> impl Bundle {
-    todo!()
-}
+// fn outliner_row() -> impl Bundle {
+//     todo!()
+// }
 
 fn _load_sidebar_ui(mut _commands: Commands,
     mut _meshes: ResMut<Assets<Mesh>>,

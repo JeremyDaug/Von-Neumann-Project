@@ -272,7 +272,7 @@ impl Orbital {
     /// given to it.
     pub fn update_velocity(&mut self, delta: f64, others: &HashMap<usize, Orbital>) {
         let g = self.under_accel(delta, others);
-        info!("{} Gravity Vector: {:?}", self.id, g);
+        //info!("{} Gravity Vector: {:?}", self.id, g);
         let new_velocity = self.v.add(&g.mult(delta));
         self.v = new_velocity;
     }
@@ -314,7 +314,7 @@ impl Orbital {
         // rotate
         ret.update_rotation(delta);
         // check that we're actually getting changes.
-        info!("{} Velocity Change: {:?} -> {:?}", self.id, self.v, ret.v);
+        //info!("{} Velocity Change: {:?} -> {:?}", self.id, self.v, ret.v);
         //info!("{} Position Change: {:?} -> {:?}", self.id, self.t, ret.t);
         ret
     }
