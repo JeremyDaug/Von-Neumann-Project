@@ -23,7 +23,7 @@ use bevy::{
 };
 use bevy_ui_widgets::UiWidgetsPlugins;
 
-use crate::{game_state::GameState, screens::{game_screen::{CameraControl, game_plugin, spherical_to_cartesian}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
+use crate::{game_state::GameState, screens::{game_screen::{OrbitalId, RelativeCameraPosition, game_plugin}, menu_plugin::menu_plugin, pause_menu::pause_menu_plugin}, splash::{splash_countdown, splash_setup}};
 
 fn main() {
     // Start up app
@@ -33,12 +33,6 @@ fn main() {
         .add_plugins(UiWidgetsPlugins)
         // set game state
         .init_state::<GameState>()
-        .insert_resource(CameraControl {
-            radius: 200.0,
-            azimuth: 0.0,
-            elevation: f32::consts::FRAC_PI_4, // ~45 degrees up.
-            ..default()
-        })
         // Game start Setup, basic stuff.
         .add_systems(Startup, setup)
         // These two may be removed into a separate splash screen plugin later.
@@ -53,15 +47,11 @@ fn setup(
     // mut _meshes: ResMut<Assets<Mesh>>,
     // mut _materials: ResMut<Assets<StandardMaterial>>,
     // mut _game_data: ResMut<GameData>,
-    camera_control: Res<CameraControl>,
 ) {
     // Camera setup.
     commands.spawn((
-        Camera3d::default(),
-        Transform::from_translation(spherical_to_cartesian(
-            camera_control.radius,
-            camera_control.azimuth,
-            camera_control.elevation,
-        )).looking_at(Vec3::ZERO, Vec3::Y),
+        Camera2d,
+        OrbitalId::default(),
+        RelativeCameraPosition::default()
     ));
 }

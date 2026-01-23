@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default, f64::consts::TAU};
+use std::{collections::HashMap, default, f64::consts::{PI, TAU}};
 
 use bevy::{log::info, math::{Vec3, Vec4, primitives::{Circle, Sphere}}};
 
@@ -57,24 +57,20 @@ pub struct Orbital {
     pub inv_m: f64,
 
     // position
-    /// The position of the body in 3d
+    /// The position of the body in 2d
     pub t: Vector,
 
-    // rotation
-    /// The Rotation values, 3 Bivectors, or a Quaternion for losers.
-    /// equal to rot * I (pseudoscalar)
-    pub rot: Vector,
-    /// The scalar part of our rotation vector.
-    pub rot_scal: f64,
+    /// The Rotation value in radians.
+    pub rot: f64,
 
     /// The current translational velocity of the body.
     pub v: Vector,
-    /// The current Rotational Velocity of the body.
-    pub w: Vector,
+    /// The current Rotational Velocity of the body in Radians / Second
+    pub w: f64,
 
-    /// The Circle Mesh for the Orbital.
-    /// Calculated as the log base 10 of the radius.
-    pub sphere: Sphere
+    // The Circle Mesh for the Orbital.
+    // Calculated as the log base 10 of the radius.
+    //pub sphere: Sphere
 }
 
 impl Orbital {
@@ -84,15 +80,12 @@ impl Orbital {
     pub fn new(id: usize) -> Self {
         Self {
             id,
-            sphere: Sphere { radius: 1.0 },
             ..Default::default()
         }
     }
 
     pub fn with_radius(mut self, radius: f64) -> Self {
         self.r = radius;
-        self.sphere = Sphere::default();
-        self.sphere.radius = radius as f32;
         self
     }
 
@@ -108,23 +101,22 @@ impl Orbital {
     }
 
     pub fn with_coords(mut self, x: f64, y: f64, z: f64) -> Self {
-        self.t = Vector { x, y, z };
+        self.t = Vector { x, y };
         self
     }
 
     pub fn with_velocity(mut self, x: f64, y: f64, z: f64) -> Self {
-        self.v = Vector { x, y, z };
+        self.v = Vector { x, y };
         self
     }
 
-    pub fn with_rotation(mut self, scalar: f64, xy: f64, yz: f64, zx: f64) -> Self {
-        self.rot_scal = scalar;
-        self.rot = Vector { x: yz, y: zx, z: xy };
+    pub fn with_rotation(mut self, rot: f64) -> Self {
+        self.rot = rot;
         self
     }
 
-    pub fn with_rot_vel(mut self, xy: f64, yz: f64, zx: f64) -> Self {
-        self.w = Vector { x: yz, y: zx, z: xy };
+    pub fn with_rot_vel(mut self, vrot: f64) -> Self {
+        self.w = vrot;
         self
     }
 
@@ -142,8 +134,8 @@ impl Orbital {
     /// The angular momentum of the body at this moment.
     /// 
     /// kg m^2 s^-1
-    pub fn angular_momentum(&self) -> Vector {
-        self.w.mult(self.angular_inertia())
+    pub fn angular_momentum(&self) -> f64 {
+        self.w * self.angular_inertia()
     }
 
     /// # Linear Momentum
@@ -154,8 +146,7 @@ impl Orbital {
     pub fn linear_momentum(&self) -> Vector {
         Vector {
             x: self.v.x * self.m,
-            y: self.v.y * self.m,
-            z: self.v.z * self.m
+            y: self.v.y * self.m
         }
     }
 
@@ -179,7 +170,7 @@ impl Orbital {
     /// 
     /// The rotational energy of the body at this moment.
     pub fn rotational_energy(&self) -> f64 {
-        0.5 * self.angular_inertia() * self.w.magnitude()
+        0.5 * self.angular_inertia() * self.w
     }
 
     /// # Gravitational Acceleration
@@ -292,7 +283,7 @@ impl Orbital {
     /// 
     /// Rotation is measured in Radians (TAU is used becaues it's better than PI)
     pub fn update_rotation(&mut self, delta: f64) {
-        let new_rot = self.rot.add(&self.w).angular_clamp();
+        let new_rot = (self.rot + self.w) % PI;
         self.rot = new_rot;
     }
 
